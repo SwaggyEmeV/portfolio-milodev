@@ -1,0 +1,76 @@
+---
+// Cada archivo en src/pages es una URL: index.astro -> "/"
+import Layout from "../layouts/Layout.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { getCollection } from "astro:content";
+import { site } from "../data/site";
+
+// Trae los proyectos: primero los destacados, luego los más recientes.
+const proyectos = (await getCollection("proyectos")).sort(
+  (a, b) =>
+    Number(b.data.destacado) - Number(a.data.destacado) ||
+    b.data.fecha.getTime() - a.data.fecha.getTime(),
+);
+---
+
+<Layout>
+  <!-- HERO -->
+  <section class="py-24 sm:py-32">
+    <p class="font-medium text-brand">Hola, soy</p>
+    <h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
+      {site.nombre}
+    </h1>
+    <p class="mt-4 text-xl text-slate-600 sm:text-2xl dark:text-slate-400">{site.rol}</p>
+    <p class="mt-6 max-w-2xl text-lg">{site.frase}</p>
+    <div class="mt-8 flex flex-wrap gap-4">
+      <a href="#proyectos" class="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark">
+        Ver proyectos
+      </a>
+      <a href="#contacto" class="rounded-lg border border-slate-300 px-5 py-3 font-medium hover:border-brand dark:border-slate-700">
+        Contactar
+      </a>
+    </div>
+  </section>
+
+  <!-- PROYECTOS -->
+  <!-- scroll-mt-20: deja espacio para el menú fijo al saltar a esta sección -->
+  <section id="proyectos" class="scroll-mt-20 py-12">
+    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Proyectos</h2>
+    <!-- Rejilla: 1 columna en móvil, 2 en tablet (sm:), 3 en escritorio (lg:) -->
+    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {proyectos.map((p) => (
+        <ProjectCard
+          slug={p.id}
+          titulo={p.data.titulo}
+          resumen={p.data.resumen}
+          tecnologias={p.data.tecnologias}
+        />
+      ))}
+    </div>
+  </section>
+
+  <!-- SOBRE MÍ -->
+  <section id="sobre-mi" class="scroll-mt-20 py-12">
+    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Sobre mí</h2>
+    <p class="mt-6 max-w-2xl text-lg">{site.sobreMi}</p>
+    <h3 class="mt-10 font-semibold text-slate-900 dark:text-white">Tecnologías que uso</h3>
+    <ul class="mt-4 flex flex-wrap gap-2">
+      {site.tecnologias.map((t) => (
+        <li class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-800">{t}</li>
+      ))}
+    </ul>
+  </section>
+
+  <!-- CONTACTO -->
+  <section id="contacto" class="scroll-mt-20 py-12">
+    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Contacto</h2>
+    <p class="mt-6 text-lg">¿Tienes un proyecto o una oferta? Escríbeme.</p>
+    <div class="mt-6 flex flex-wrap gap-4">
+      <a href={`mailto:${site.email}`} class="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark">
+        {site.email}
+      </a>
+      <a href={site.github} class="rounded-lg border border-slate-300 px-5 py-3 hover:border-brand dark:border-slate-700">GitHub</a>
+      <a href={site.linkedin} class="rounded-lg border border-slate-300 px-5 py-3 hover:border-brand dark:border-slate-700">LinkedIn</a>
+    </div>
+  </section>
+</Layout>

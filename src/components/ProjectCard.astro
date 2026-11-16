@@ -1,0 +1,24 @@
+---
+// Un componente reutilizable: se usa una vez por proyecto.
+interface Props {
+  slug: string;
+  titulo: string;
+  resumen: string;
+  tecnologias: string[];
+}
+const { slug, titulo, resumen, tecnologias } = Astro.props;
+---
+
+<!-- "group" permite que los hijos reaccionen al hover de la tarjeta (group-hover:) -->
+<a
+  href={`/proyectos/${slug}/`}
+  class="group flex flex-col rounded-xl border border-slate-200 p-6 transition hover:-translate-y-1 hover:border-brand hover:shadow-lg dark:border-slate-800"
+>
+  <h3 class="text-lg font-semibold text-slate-900 group-hover:text-brand dark:text-white">{titulo}</h3>
+  <p class="mt-2 flex-1 text-slate-600 dark:text-slate-400">{resumen}</p>
+  <ul class="mt-4 flex flex-wrap gap-2">
+    {tecnologias.map((t) => (
+      <li class="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">{t}</li>
+    ))}
+  </ul>
+</a>

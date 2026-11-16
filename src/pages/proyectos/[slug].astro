@@ -1,0 +1,41 @@
+---
+// [slug] entre corchetes = ruta dinámica. Una sola plantilla genera
+// /proyectos/blog-php/, /proyectos/portfolio-astro/, etc.
+import Layout from "../../layouts/Layout.astro";
+import { getCollection, render } from "astro:content";
+
+// En un sitio estático, Astro necesita saber de antemano qué páginas crear.
+export async function getStaticPaths() {
+  const proyectos = await getCollection("proyectos");
+  return proyectos.map((p) => ({ params: { slug: p.id }, props: { proyecto: p } }));
+}
+
+const { proyecto } = Astro.props;
+const { Content } = await render(proyecto); // convierte el Markdown en HTML
+const d = proyecto.data;
+---
+
+<Layout title={d.titulo} description={d.resumen}>
+  <article class="py-16">
+    <a href="/#proyectos" class="text-sm text-brand hover:underline">← Volver a proyectos</a>
+    <h1 class="mt-6 text-4xl font-bold text-slate-900 dark:text-white">{d.titulo}</h1>
+    <p class="mt-4 text-xl text-slate-600 dark:text-slate-400">{d.resumen}</p>
+
+    <ul class="mt-6 flex flex-wrap gap-2">
+      {d.tecnologias.map((t) => (
+        <li class="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">{t}</li>
+      ))}
+    </ul>
+
+    <!-- && : solo pinta el botón si existe el enlace -->
+    <div class="mt-6 flex gap-4">
+      {d.demo && <a href={d.demo} class="rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-dark">Ver demo</a>}
+      {d.repo && <a href={d.repo} class="rounded-lg border border-slate-300 px-4 py-2 hover:border-brand dark:border-slate-700">Código</a>}
+    </div>
+
+    <!-- El contenido Markdown. Los selectores [&_h2]: dan estilo a etiquetas que no escribiste tú -->
+    <div class="mt-10 max-w-2xl space-y-4 text-lg [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-6">
+      <Content />
+    </div>
+  </article>
+</Layout>
