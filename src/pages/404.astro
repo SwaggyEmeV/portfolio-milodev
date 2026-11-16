@@ -1,0 +1,19 @@
+---
+// 404.astro: Astro genera 404.html y Cloudflare Pages lo muestra
+// automáticamente cuando alguien entra a una URL que no existe.
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Página no encontrada">
+  <section class="flex min-h-[70vh] flex-col items-center justify-center text-center">
+    <p class="font-mono text-8xl font-bold text-portal sm:text-9xl">404</p>
+    <h1 class="mt-6 text-2xl font-bold text-white sm:text-3xl">Esta ruta se perdió en otra dimensión</h1>
+    <p class="mt-4 max-w-md text-humo">
+      O se quedó sin gasolina por el camino. En cualquier caso, aquí no hay nada.
+    </p>
+    <p class="mt-8 font-mono text-sm text-humo">
+      <span class="text-motor">error:</span> no existe el archivo o el directorio
+    </p>
+    <a href="/" class="mt-8 rounded-lg bg-portal px-5 py-3 font-mono text-sm font-semibold text-asfalto hover:bg-portal-dark">cd ~</a>
+  </section>
+</Layout>

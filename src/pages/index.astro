@@ -1,42 +1,61 @@
 ---
-// Cada archivo en src/pages es una URL: index.astro -> "/"
 import Layout from "../layouts/Layout.astro";
 import ProjectCard from "../components/ProjectCard.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import Icon from "../components/Icon.astro";
 import { getCollection } from "astro:content";
 import { site } from "../data/site";
 
-// Trae los proyectos: primero los destacados, luego los más recientes.
+// Proyectos: primero los destacados, luego los más recientes.
 const proyectos = (await getCollection("proyectos")).sort(
   (a, b) =>
     Number(b.data.destacado) - Number(a.data.destacado) ||
     b.data.fecha.getTime() - a.data.fecha.getTime(),
 );
+
+const btnPrimario =
+  "rounded-lg bg-portal px-5 py-3 font-mono text-sm font-semibold text-asfalto transition hover:bg-portal-dark";
+const btnSecundario =
+  "rounded-lg border border-borde px-5 py-3 font-mono text-sm transition hover:border-portal hover:text-portal";
 ---
 
 <Layout>
-  <!-- HERO -->
-  <section class="py-24 sm:py-32">
-    <p class="font-medium text-brand">Hola, soy</p>
-    <h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
-      {site.nombre}
+  <!-- ============ HERO ============ -->
+  <section class="py-20 sm:py-32">
+    <!-- Ventana de terminal -->
+    <div class="max-w-2xl overflow-hidden rounded-xl border border-borde bg-chasis/80 shadow-2xl shadow-black/40">
+      <div class="flex items-center gap-2 border-b border-borde px-4 py-3">
+        <span class="h-3 w-3 rounded-full bg-red-500/80"></span>
+        <span class="h-3 w-3 rounded-full bg-motor/80"></span>
+        <span class="h-3 w-3 rounded-full bg-portal/80"></span>
+        <span class="ml-3 font-mono text-xs text-humo">{site.usuario}@garaje: ~</span>
+      </div>
+      <div class="space-y-2 p-5 font-mono text-sm sm:text-base">
+        <p><span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$ whoami</p>
+        <p class="text-white">{site.nombre} · {site.rol.toLowerCase()}</p>
+        <p><span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$ cat intereses.txt</p>
+        <p class="text-humo">código · motos · mecánica · series de ciencia ficción y hackers</p>
+        <p>
+          <span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$
+          <span class="inline-block h-5 w-2.5 translate-y-1 animate-parpadeo bg-portal"></span>
+        </p>
+      </div>
+    </div>
+
+    <h1 class="mt-12 text-5xl font-bold tracking-tight text-white sm:text-7xl">
+      {site.nombre}<span class="text-portal">.</span>
     </h1>
-    <p class="mt-4 text-xl text-slate-600 sm:text-2xl dark:text-slate-400">{site.rol}</p>
-    <p class="mt-6 max-w-2xl text-lg">{site.frase}</p>
+    <p class="mt-4 font-mono text-lg text-portal sm:text-xl">&gt; {site.rol}</p>
+    <p class="mt-6 max-w-2xl text-lg text-humo">{site.frase}</p>
     <div class="mt-8 flex flex-wrap gap-4">
-      <a href="#proyectos" class="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark">
-        Ver proyectos
-      </a>
-      <a href="#contacto" class="rounded-lg border border-slate-300 px-5 py-3 font-medium hover:border-brand dark:border-slate-700">
-        Contactar
-      </a>
+      <a href="#proyectos" class={btnPrimario}>./ver_proyectos</a>
+      <a href="#contacto" class={btnSecundario}>contactar</a>
     </div>
   </section>
 
-  <!-- PROYECTOS -->
-  <!-- scroll-mt-20: deja espacio para el menú fijo al saltar a esta sección -->
+  <!-- ============ PROYECTOS ============ -->
   <section id="proyectos" class="scroll-mt-20 py-12">
-    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Proyectos</h2>
-    <!-- Rejilla: 1 columna en móvil, 2 en tablet (sm:), 3 en escritorio (lg:) -->
+    <SectionTitle numero="01" titulo="proyectos" />
     <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {proyectos.map((p) => (
         <ProjectCard
@@ -44,33 +63,66 @@ const proyectos = (await getCollection("proyectos")).sort(
           titulo={p.data.titulo}
           resumen={p.data.resumen}
           tecnologias={p.data.tecnologias}
+          destacado={p.data.destacado}
         />
       ))}
     </div>
   </section>
 
-  <!-- SOBRE MÍ -->
+  <!-- ============ SOBRE MÍ ============ -->
   <section id="sobre-mi" class="scroll-mt-20 py-12">
-    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Sobre mí</h2>
-    <p class="mt-6 max-w-2xl text-lg">{site.sobreMi}</p>
-    <h3 class="mt-10 font-semibold text-slate-900 dark:text-white">Tecnologías que uso</h3>
-    <ul class="mt-4 flex flex-wrap gap-2">
-      {site.tecnologias.map((t) => (
-        <li class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-800">{t}</li>
-      ))}
-    </ul>
+    <SectionTitle numero="02" titulo="sobre_mí" />
+    <div class="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr]">
+      <div class="space-y-4 text-lg text-humo">
+        {site.sobreMi.map((parrafo) => <p>{parrafo}</p>)}
+      </div>
+      <div>
+        <h3 class="font-mono text-sm text-motor">$ ls ./caja_de_herramientas</h3>
+        <ul class="mt-4 grid grid-cols-2 gap-2 font-mono text-sm">
+          {site.tecnologias.map((t) => (
+            <li class="flex items-center gap-2">
+              <span class="text-portal">▹</span>{t}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   </section>
 
-  <!-- CONTACTO -->
+  <!-- ============ GARAJE (intereses) ============ -->
+  <section id="garaje" class="scroll-mt-20 py-12">
+    <SectionTitle numero="03" titulo="fuera_del_código" />
+    <p class="mt-6 max-w-2xl text-humo">Cuando no estoy programando, estoy en el garaje o en otra dimensión.</p>
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      {site.intereses.map((item, i) => (
+        <div class="flex gap-4 rounded-xl border border-borde bg-chasis p-5">
+          <!-- Alterna verde y naranja según la posición (par/impar) -->
+          <div class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-asfalto ${i % 2 === 0 ? "text-motor" : "text-portal"}`}>
+            <Icon name={item.icono as "moto"} />
+          </div>
+          <div>
+            <h3 class="font-semibold text-white">{item.titulo}</h3>
+            <p class="mt-1 text-sm text-humo">{item.texto}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- ============ CONTACTO ============ -->
   <section id="contacto" class="scroll-mt-20 py-12">
-    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Contacto</h2>
-    <p class="mt-6 text-lg">¿Tienes un proyecto o una oferta? Escríbeme.</p>
-    <div class="mt-6 flex flex-wrap gap-4">
-      <a href={`mailto:${site.email}`} class="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark">
-        {site.email}
-      </a>
-      <a href={site.github} class="rounded-lg border border-slate-300 px-5 py-3 hover:border-brand dark:border-slate-700">GitHub</a>
-      <a href={site.linkedin} class="rounded-lg border border-slate-300 px-5 py-3 hover:border-brand dark:border-slate-700">LinkedIn</a>
+    <SectionTitle numero="04" titulo="contacto" />
+    <div class="mt-8 rounded-xl border border-borde bg-chasis p-8 text-center sm:p-12">
+      <p class="font-mono text-sm text-portal">$ ping {site.usuario}</p>
+      <h3 class="mt-4 text-3xl font-bold text-white sm:text-4xl">¿Arrancamos un proyecto?</h3>
+      <p class="mx-auto mt-4 max-w-xl text-humo">
+        Si tienes una idea, una oferta o solo quieres hablar de código o de motos, escríbeme. Respondo rápido.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-4">
+        <a href={`mailto:${site.email}`} class={btnPrimario}>enviar_email</a>
+        <a href={site.github} class={btnSecundario} target="_blank" rel="noopener">github</a>
+        <a href={site.linkedin} class={btnSecundario} target="_blank" rel="noopener">linkedin</a>
+      </div>
     </div>
   </section>
 </Layout>

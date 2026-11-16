@@ -1,24 +1,29 @@
 ---
-// Un componente reutilizable: se usa una vez por proyecto.
 interface Props {
   slug: string;
   titulo: string;
   resumen: string;
   tecnologias: string[];
+  destacado?: boolean;
 }
-const { slug, titulo, resumen, tecnologias } = Astro.props;
+const { slug, titulo, resumen, tecnologias, destacado = false } = Astro.props;
 ---
 
-<!-- "group" permite que los hijos reaccionen al hover de la tarjeta (group-hover:) -->
+<!-- "group" deja que los hijos reaccionen al hover de la tarjeta (group-hover:) -->
 <a
   href={`/proyectos/${slug}/`}
-  class="group flex flex-col rounded-xl border border-slate-200 p-6 transition hover:-translate-y-1 hover:border-brand hover:shadow-lg dark:border-slate-800"
+  class="group relative flex flex-col rounded-xl border border-borde bg-chasis p-6 transition duration-300 hover:-translate-y-1 hover:border-portal/60 hover:shadow-[0_0_30px_-10px] hover:shadow-portal/40"
 >
-  <h3 class="text-lg font-semibold text-slate-900 group-hover:text-brand dark:text-white">{titulo}</h3>
-  <p class="mt-2 flex-1 text-slate-600 dark:text-slate-400">{resumen}</p>
-  <ul class="mt-4 flex flex-wrap gap-2">
+  <div class="flex items-center justify-between font-mono text-xs text-humo">
+    <span>./{slug}</span>
+    {destacado && <span class="rounded border border-motor/40 px-2 py-0.5 text-motor">destacado</span>}
+  </div>
+  <h3 class="mt-4 text-lg font-semibold text-white transition group-hover:text-portal">{titulo}</h3>
+  <p class="mt-2 flex-1 text-humo">{resumen}</p>
+  <ul class="mt-5 flex flex-wrap gap-2 font-mono text-xs">
     {tecnologias.map((t) => (
-      <li class="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">{t}</li>
+      <li class="rounded bg-asfalto px-2 py-1 text-portal/90">{t}</li>
     ))}
   </ul>
+  <span class="mt-5 font-mono text-sm text-humo transition group-hover:text-portal">ver_más →</span>
 </a>

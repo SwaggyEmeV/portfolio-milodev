@@ -1,12 +1,10 @@
 ---
-// Todo lo que va entre las líneas "---" se ejecuta al COMPILAR (como el PHP
-// de arriba de un archivo). Lo de abajo es el HTML que se genera.
+// Lo que va entre "---" se ejecuta al COMPILAR. Lo de abajo es el HTML generado.
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { site } from "../data/site";
 
-// "Props": los datos que recibe este layout desde cada página.
 interface Props {
   title?: string;
   description?: string;
@@ -20,16 +18,41 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#0a0f0c" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Fuentes: Inter (texto) y JetBrains Mono (estilo terminal) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
     <title>{fullTitle}</title>
   </head>
-  <!-- dark:  aplica la clase solo si el sistema está en modo oscuro -->
-  <body class="min-h-screen bg-white font-sans text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-200">
+  <body class="relative min-h-screen bg-asfalto font-sans text-texto antialiased">
+    <!--
+      Fondo decorativo: una rejilla sutil + un brillo verde arriba.
+      pointer-events-none: no bloquea clics. -z-10: queda detrás de todo.
+      aria-hidden: los lectores de pantalla lo ignoran.
+    -->
+    <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f2b2333_1px,transparent_1px),linear-gradient(to_bottom,#1f2b2333_1px,transparent_1px)] bg-[size:48px_48px]"></div>
+      <div class="absolute -top-40 left-1/2 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-portal/10 blur-3xl"></div>
+    </div>
+
     <Header />
     <main class="mx-auto max-w-5xl px-4 sm:px-6">
-      <!-- <slot /> es el hueco donde cada página mete su contenido -->
       <slot />
     </main>
     <Footer />
+
+    <!-- Un guiño para quien abra la consola del navegador (F12) -->
+    <script>
+      console.log(
+        "%c> acceso concedido",
+        "color:#4ade80;font-family:monospace;font-size:14px",
+        "\n¿Curioseando el código? Me caes bien. Escríbeme. — Miller",
+      );
+    </script>
   </body>
 </html>
