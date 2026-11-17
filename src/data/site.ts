@@ -57,12 +57,13 @@ export const site = {
   ],
 };
 
-// Barra inferior estilo tmux. `cmd` es lo que ejecuta la terminal al pulsarla;
-// `href` es a dónde lleva desde las demás páginas (el home lee el #hash y lo ejecuta).
+// Barra inferior estilo tmux = una pestaña por ETAPA del scroll (mismo orden que
+// ETAPAS en src/scripts/escenario.ts). `href` es a dónde lleva desde las demás
+// páginas: el home lee el #hash y salta a esa etapa.
 export const tabs = [
-  { etiqueta: "0:home", cmd: "neofetch", href: "/" },
-  { etiqueta: "1:proyectos", cmd: "ls ~/proyectos", href: "/#proyectos" },
-  { etiqueta: "2:sobre_mi", cmd: "cat ~/sobre_mi.md", href: "/#sobre-mi" },
-  { etiqueta: "3:garaje", cmd: "ls ~/garaje", href: "/#garaje" },
-  { etiqueta: "4:contacto", cmd: "contacto", href: "/#contacto" },
+  { etiqueta: "0:home", href: "/" },
+  { etiqueta: "1:proyectos", href: "/#proyectos" },
+  { etiqueta: "2:sobre_mi", href: "/#sobre-mi" },
+  { etiqueta: "3:garaje", href: "/#garaje" },
+  { etiqueta: "4:contacto", href: "/#contacto" },
 ];

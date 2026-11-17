@@ -30,6 +30,8 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
       rel="stylesheet"
     />
     <title>{fullTitle}</title>
+    <!-- is:inline = se ejecuta tal cual y al instante: marca que hay JavaScript (el CSS del escenario lo necesita) -->
+    <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
   <body class="bg-asfalto font-mono text-hueso antialiased">
     <slot />

@@ -29,9 +29,12 @@ html {
 }
 
 /* Todo lo de abajo va en la capa "components": así las clases de utilidad de
-   Tailwind (hidden, flex-1, w-70...) siempre ganan a estas clases propias. */
+   Tailwind (hidden, flex-1, w-64...) siempre ganan a estas clases propias. */
 @layer components {
-/* ---------------- PANELES (estilo tmux) ---------------- */
+
+/* =====================================================================
+   PANELES (páginas de proyecto y 404)
+   ===================================================================== */
 .panel {
   position: relative;
   display: flex;
@@ -60,7 +63,272 @@ html {
   color: var(--color-humo);
 }
 
-/* ---------------- EXPLORADOR, CHIPS Y BARRA ---------------- */
+/* =====================================================================
+   ESCENARIO DEL HOME
+   La página mide 6 pantallas de alto y el "stage" se queda pegado (sticky)
+   mientras haces scroll: el scroll no mueve la página, mueve la terminal.
+   ===================================================================== */
+.escenario { position: relative; }
+.js .escenario { height: 600dvh; }
+html:not(.js) .escenario-ui { display: none; }
+
+.stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--color-asfalto);
+}
+
+/* ---------- Fondo: foco que sigue al ratón, suelo en perspectiva, ruido ---------- */
+.fondo { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.foco {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(620px circle at var(--mx, 50%) var(--my, 38%), color-mix(in srgb, var(--color-agua) 14%, transparent), transparent 65%);
+}
+.suelo {
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  bottom: -6%;
+  height: 64%;
+  overflow: hidden;
+  transform: perspective(520px) rotateX(64deg);
+  transform-origin: 50% 100%;
+  opacity: 0.6;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 88%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 88%);
+}
+/* La rejilla es más alta que el suelo y se desplaza hacia ti según el scroll */
+.suelo-plano {
+  position: absolute;
+  inset: -72px 0 0 0;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-agua) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-agua) 30%, transparent) 1px, transparent 1px);
+  background-size: 72px 72px;
+  transform: translateY(var(--suelo, 0px));
+}
+.ruido {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+/* Barrido tipo CRT: una franja de luz que baja despacio */
+.barrido {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -160px;
+  height: 160px;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-agua) 7%, transparent), transparent);
+  animation: barrido 9s linear infinite;
+}
+@keyframes barrido { to { transform: translateY(calc(100dvh + 320px)); } }
+.vineta {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgb(0 0 0 / 0.7) 100%);
+}
+
+/* ---------- Palabra gigante de fondo (una por etapa) ---------- */
+.ghosts {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  /* paralaje: se mueve con el ratón y con el avance dentro de la etapa */
+  transform: translate3d(calc(var(--nx, 0) * -26px), calc(var(--ps, 0) * -5dvh), 0);
+}
+.ghost {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(100px, 20vw, 360px);
+  line-height: 0.82;
+  text-transform: uppercase;
+  text-align: center;
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--color-agua) 34%, transparent);
+  opacity: 0;
+  filter: blur(18px);
+  translate: 0 7dvh;
+  transition: opacity 0.8s ease, filter 0.8s ease, translate 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.ghost.activa { opacity: 1; filter: none; translate: 0 0; }
+
+/* ---------- Riel de progreso (izquierda, solo pantallas anchas) ---------- */
+.riel {
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  translate: 0 -50%;
+  display: none;
+  height: min(56dvh, 460px);
+}
+.riel-pista { position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: var(--color-borde); }
+.riel-relleno { width: 100%; height: 0; background: var(--color-agua); box-shadow: 0 0 12px var(--color-agua); }
+.riel-lista {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.paso {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-humo);
+  cursor: pointer;
+}
+.paso::before {
+  content: "";
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--color-asfalto);
+  border: 2px solid var(--color-borde);
+  transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
+}
+.paso.hecha::before { border-color: var(--color-agua); }
+.paso.activa::before { background: var(--color-agua); border-color: var(--color-agua); box-shadow: 0 0 14px var(--color-agua); }
+.paso.activa { color: var(--color-hueso); }
+.paso-n { color: var(--color-agua); }
+.paso-t { opacity: 0; translate: -6px 0; transition: opacity 0.3s, translate 0.3s; }
+.paso.activa .paso-t, .paso:hover .paso-t, .paso:focus-visible .paso-t { opacity: 1; translate: 0 0; }
+.paso:focus-visible { outline: 2px solid var(--color-agua); outline-offset: 4px; }
+
+/* ---------- Ventana de la terminal (vidrio) ---------- */
+.cuerpo {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr); /* sin esto, los atajos (nowrap) ensanchan la columna más que la pantalla */
+  place-items: center;
+  padding: 16px 12px 40px;
+}
+.ventana {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(1080px, 100%);
+  height: 100%;
+  max-height: 780px;
+  min-height: 0;
+  border: 1px solid var(--color-borde);
+  border-radius: 14px;
+  background: rgb(11 11 10 / 0.84);
+  box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.85), 0 0 70px -34px var(--color-agua);
+  /* inclinación 3D según el ratón (--nx/--ny los pone escenario.ts) */
+  transform: perspective(1400px) rotateY(calc(var(--nx, 0) * 2.2deg)) rotateX(calc(var(--ny, 0) * -1.6deg));
+}
+/* Cristal: deja entrever la palabra gigante de fondo, sin desenfocar (más fluido al hacer scroll) */
+@media (pointer: fine) {
+  .ventana { background: rgb(11 11 10 / 0.6); }
+}
+/* Borde con brillo que sigue al cursor (truco de máscara: solo se ve el aro de 1px) */
+.ventana::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: radial-gradient(380px circle at var(--wx, 50%) var(--wy, 0%), var(--color-agua), color-mix(in srgb, var(--color-agua) 12%, transparent) 55%, transparent);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.ventana-cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-borde);
+  font-size: 12px;
+  color: var(--color-humo);
+}
+.puntos { display: flex; gap: 6px; }
+.puntos i { width: 10px; height: 10px; border-radius: 9999px; background: var(--color-borde); }
+.puntos i:nth-child(1) { background: var(--color-motor); }
+.puntos i:nth-child(2) { background: var(--color-humo); }
+.puntos i:nth-child(3) { background: var(--color-agua); }
+.ventana-titulo { flex: 1; text-align: center; letter-spacing: 0.04em; }
+.ventana-readout { min-width: 14ch; text-align: right; color: var(--color-agua); font-variant-numeric: tabular-nums; }
+.ventana-cuerpo { display: flex; flex: 1; min-height: 0; }
+.explorador {
+  display: none;
+  flex-shrink: 0;
+  width: 232px;
+  overflow-y: auto;
+  padding: 14px 6px;
+  border-right: 1px solid var(--color-borde);
+}
+@media (min-width: 900px) { .explorador { display: block; } }
+.term { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+.term-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-borde) transparent;
+}
+
+/* Tamaños de la ventana según el espacio libre para el riel y el HUD */
+@media (min-width: 1100px) {
+  .riel { display: block; }
+  .ventana { width: min(1080px, calc(100vw - 180px)); }
+}
+@media (min-width: 1360px) {
+  .ventana { width: min(1080px, calc(100vw - 620px)); }
+}
+
+/* ---------- Salida de la terminal: cada línea entra con un fundido ---------- */
+.bloque { transition: opacity 0.22s ease, translate 0.22s ease; }
+.bloque.sale { opacity: 0; translate: 0 -10px; }
+.linea {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  animation: entra 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
+}
+@keyframes entra {
+  from { opacity: 0; translate: 0 8px; filter: blur(3px); }
+  to { opacity: 1; translate: 0 0; filter: none; }
+}
+.c-acc { color: var(--color-agua); }
+.c-bone { color: var(--color-hueso); }
+.c-dim { color: var(--color-humo); }
+.c-warn { color: var(--color-motor); }
+.enlace { text-decoration: underline; text-underline-offset: 3px; }
+.enlace:hover { filter: brightness(1.25); }
+
+/* ---------- Explorador, atajos y barra ---------- */
 .run {
   display: flex;
   align-items: center;
@@ -78,15 +346,28 @@ html {
   color: var(--color-agua);
   background: color-mix(in srgb, var(--color-agua) 12%, transparent);
 }
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  overflow-x: auto;
+  scrollbar-width: none; /* se desplaza con el dedo o la rueda, sin barra */
+  border-top: 1px solid var(--color-borde);
+}
+.chips::-webkit-scrollbar { display: none; }
 .chip {
+  flex-shrink: 0;
   min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--color-borde);
   font-size: 13px;
+  white-space: nowrap;
   color: var(--color-hueso);
   cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, translate 0.2s;
 }
-.chip:hover { border-color: var(--color-agua); color: var(--color-agua); }
+.chip:hover { border-color: var(--color-agua); color: var(--color-agua); translate: 0 -2px; }
 .tab {
   display: flex;
   align-items: center;
@@ -111,7 +392,15 @@ html {
   outline-offset: -2px;
 }
 
-/* ---------------- LÍNEA DE COMANDOS ---------------- */
+/* ---------- Línea de comandos ---------- */
+.prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 20px;
+  border-top: 1px solid var(--color-borde);
+}
 .term-input {
   flex: 1 1 120px;
   min-width: 0;
@@ -127,30 +416,88 @@ html {
 .term-input::placeholder { color: var(--color-humo); }
 .prompt-row:focus-within { box-shadow: inset 0 0 0 1px var(--color-agua); }
 
-/* ---------------- SALIDA DE LA TERMINAL ---------------- */
-.linea {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.6;
+/* ---------- HUD: tacómetro, servicios e historial (derecha, pantallas anchas) ---------- */
+.hud {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  translate: 0 -50%;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  width: 232px;
 }
-.c-acc { color: var(--color-agua); }
-.c-bone { color: var(--color-hueso); }
-.c-dim { color: var(--color-humo); }
-.c-warn { color: var(--color-motor); }
-.enlace { text-decoration: underline; text-underline-offset: 3px; }
-.enlace:hover { filter: brightness(1.25); }
+@media (min-width: 1360px) { .hud { display: flex; } }
+.vidrio {
+  padding: 14px 16px;
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  background: rgb(11 11 10 / 0.6);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .vidrio { backdrop-filter: blur(10px); }
+}
+.gauge { display: block; width: 100%; height: auto; }
+.gauge-pista, .gauge-arco { fill: none; stroke-width: 8; stroke-linecap: round; }
+.gauge-pista { stroke: var(--color-borde); }
+.gauge-arco { stroke: var(--color-agua); stroke-dashoffset: 268.08; filter: drop-shadow(0 0 5px var(--color-agua)); transition: stroke 0.3s; }
+.gauge-arco.roja { stroke: var(--color-motor); filter: drop-shadow(0 0 7px var(--color-motor)); }
+.gauge-tick { stroke: var(--color-humo); stroke-width: 1.5; }
+.gauge-tick.roja { stroke: var(--color-motor); }
+.gauge-aguja { transform-box: view-box; transform-origin: 80px 80px; rotate: -120deg; }
+.gauge-aguja line { stroke: var(--color-hueso); stroke-width: 2.5; stroke-linecap: round; }
+.gauge-aguja circle { fill: var(--color-hueso); }
+.gauge-datos { display: flex; align-items: baseline; gap: 4px; margin-top: -6px; }
+.gauge-rpm {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-hueso);
+}
+.gauge-rpm.roja { color: var(--color-motor); }
+.gauge-marcha { margin-left: auto; font-size: 12px; color: var(--color-humo); }
+.gauge-marcha b { font-size: 16px; color: var(--color-agua); }
 
-/* ---------------- PANEL "SISTEMA" ---------------- */
-.barra-rpm {
-  height: 10px;
-  width: 0;
-  background: var(--color-agua);
-  transition: width 0.4s ease, background-color 0.3s;
+/* ---------- Pista para hacer scroll (solo en la primera etapa) ---------- */
+.cue {
+  position: absolute;
+  left: 50%;
+  bottom: 52px;
+  translate: -50% 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-agua);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+  animation: rebote 1.6s ease-in-out infinite;
 }
-.barra-rpm.roja { background: var(--color-motor); }
+[data-etapa-actual="0"] .cue { opacity: 0.9; }
+@keyframes rebote { 50% { translate: -50% 8px; } }
+
+/* ---------- Resumen en HTML (SEO / lectores de pantalla / sin JavaScript) ---------- */
+.resumen { max-width: 48rem; margin: 0 auto; padding: 2rem 1rem; line-height: 1.7; }
+.resumen h2 { margin-top: 1.5rem; color: var(--color-agua); }
+.resumen a { text-decoration: underline; color: var(--color-agua); }
+.js .resumen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
+
+} /* fin @layer components */
 
 /* Respeta a quien pide menos movimiento en su sistema */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
+  .ghosts, .ventana { transform: none !important; }
+  .suelo-plano { transform: none !important; }
+  .ghost { filter: none; translate: 0 0; }
 }

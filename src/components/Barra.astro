@@ -15,7 +15,7 @@ const { interactiva = false, activa = 0 } = Astro.props;
   <span class="flex min-h-11 shrink-0 items-center bg-asfalto px-4 font-semibold text-agua">[{site.usuario}]</span>
   {tabs.map((t, i) =>
     interactiva ? (
-      <button type="button" class="tab" data-cmd={t.cmd} data-tab={i} aria-current={i === activa ? "true" : "false"}>
+      <button type="button" class="tab" data-ir={i} data-tab={i} aria-current={i === activa ? "true" : "false"}>
         {t.etiqueta}
       </button>
     ) : (

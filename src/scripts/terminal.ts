@@ -1,21 +1,19 @@
 // =====================================================================
-//  LA TERMINAL DEL HOME
+//  EL MOTOR DE LA TERMINAL
 //  Un mini "shell" en el navegador: lee el árbol de archivos de los datos
 //  que Astro incrustó (#datos-terminal), ejecuta comandos y escribe la
-//  salida en pantalla. Todo el texto se inserta con textContent (nunca
-//  innerHTML), así ningún contenido puede inyectar HTML.
+//  salida. Todo el texto se inserta con textContent (nunca innerHTML), así
+//  ningún contenido puede inyectar HTML.
+//
+//  Además de los comandos que escribe el visitante, expone una pequeña API
+//  (`terminal`) que usa escenario.ts para "teclear" comandos solos según
+//  el scroll: cada comando automático es una ETAPA de la página.
 // =====================================================================
 
 type Color = "acc" | "bone" | "dim" | "warn";
-type Linea = { a?: string; ca?: Color; b: string; cb?: Color; href?: string };
-type Resultado = {
-  out: Linea[];
-  cwd?: string;
-  gear?: number;
-  rpm?: number;
-  clear?: boolean;
-  abrir?: string;
-};
+// a = prefijo, b = texto principal (puede ser enlace), c = cola
+type Linea = { a?: string; ca?: Color; b: string; cb?: Color; href?: string; c?: string; cc?: Color };
+type Resultado = { out: Linea[]; cwd?: string; clear?: boolean; abrir?: string };
 type Datos = {
   usuario: string;
   nombre: string;
@@ -28,7 +26,6 @@ type Datos = {
   ficha: [string, string][];
   tecnologias: { nombre: string; capa: string }[];
   intereses: { archivo: string; titulo: string; texto: string }[];
-  tabs: { etiqueta: string; cmd: string; href: string }[];
   proyectos: {
     slug: string;
     titulo: string;
@@ -53,20 +50,15 @@ const punteroFino = matchMedia("(pointer: fine)").matches;
 const esperar = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 // --- Elementos de la página
-const panel = req<HTMLElement>("[data-t-panel]");
 const scroll = req<HTMLElement>("[data-t-scroll]");
 const salida = req<HTMLElement>("[data-t-salida]");
 const input = req<HTMLInputElement>("[data-t-input]");
 const promptEl = req<HTMLElement>("[data-t-prompt]");
-const rpmBarra = req<HTMLElement>("[data-t-rpm-barra]");
-const rpmTexto = req<HTMLElement>("[data-t-rpm-texto]");
-const marchaEl = req<HTMLElement>("[data-t-marcha]");
-const marchaNombre = req<HTMLElement>("[data-t-marcha-nombre]");
 const historialEl = req<HTMLElement>("[data-t-historial]");
 const cuentaEl = req<HTMLElement>("[data-t-cuenta]");
 
 // --- Constructores de líneas
-const ln = (a: string, ca: Color, b: string, cb: Color, href?: string): Linea => ({ a, ca, b, cb, href });
+const ln = (a: string, ca: Color, b: string, cb: Color, href?: string, c?: string, cc?: Color): Linea => ({ a, ca, b, cb, href, c, cc });
 const t = (b: string): Linea => ln("", "bone", b, "bone");
 const h = (b: string): Linea => ln("", "acc", b, "acc");
 const d = (b: string): Linea => ln("", "dim", b, "dim");
@@ -80,11 +72,7 @@ const DIRS: Record<string, string[]> = {
   proyectos: datos.proyectos.map((p) => `${p.slug}.md`),
   garaje: datos.intereses.map((i) => i.archivo),
 };
-// Marcha del tacómetro según la "sección" que se está viendo
-const GEAR: Record<string, number> = { proyectos: 1, "sobre_mi.md": 2, "stack.txt": 2, garaje: 3, "contacto.sh": 4 };
-const MARCHAS = ["N", "1", "2", "3", "4"];
-const NOMBRES = ["home", "proyectos", "sobre_mí", "garaje", "contacto"];
-const COMANDOS = ["help", "neofetch", "whoami", "ls", "cd", "cat", "open", "pwd", "history", "contacto", "rev", "clear", "sudo", "exit"];
+const COMANDOS = ["help", "neofetch", "whoami", "ps", "ls", "cd", "cat", "open", "pwd", "history", "contacto", "rev", "clear", "sudo", "exit"];
 
 /** Markdown muy simple -> líneas de terminal (títulos en acento, resto igual). */
 function markdown(src: string): Linea[] {
@@ -116,6 +104,24 @@ function contacto(): Linea[] {
     kv("github", datos.github.replace(/^https?:\/\//, ""), datos.github),
     kv("linkedin", datos.linkedin.replace(/^https?:\/\//, ""), datos.linkedin),
   ];
+}
+
+/** Tabla de proyectos estilo `ps aux`. */
+function procesos(): Linea[] {
+  // El espacio de relleno va en la cola (no en el enlace) para que el subrayado no se alargue
+  const ancho = Math.max(10, ...datos.proyectos.map((p) => p.slug.length)) + 2;
+  const filas = datos.proyectos.map((p, i) =>
+    ln(
+      `${String(i + 1).padStart(4, "0")}  ${p.destacado ? "● destacado" : "● running  "}  `,
+      p.destacado ? "acc" : "dim",
+      p.slug,
+      "acc",
+      `/proyectos/${p.slug}`,
+      " ".repeat(ancho - p.slug.length) + p.tecnologias.join(" · "),
+      "bone",
+    ),
+  );
+  return [d(`PID   ESTADO       ${"PROYECTO".padEnd(ancho)}STACK`), ...filas, gap(), d("→ open <proyecto> abre la página completa")];
 }
 
 const FILES: Record<string, () => Linea[]> = {
@@ -158,8 +164,8 @@ function neofetch(): Linea[] {
   return Array.from({ length: filas }, (_, i) => ln((ARTE[i] ?? "").padEnd(18), "acc", info[i]?.[0] ?? "", info[i]?.[1] ?? "bone"));
 }
 
-// --- Estado
-const estado = { cwd: "", hist: [] as string[], hi: -1, gear: 0, rpm: 1100, n: 0 };
+// --- Estado del shell
+const estado = { cwd: "", hist: [] as string[], hi: -1 };
 
 const prompt = (cwd: string) => `${datos.usuario}@garaje:${cwd ? `~/${cwd}` : "~"}$`;
 
@@ -174,12 +180,11 @@ function resolver(arg: string, cwd: string): string {
   }
   return partes.join("/");
 }
-const marchaDe = (ruta: string) => GEAR[ruta] ?? GEAR[ruta.split("/")[0]] ?? 0;
 
 function ejecutar(crudo: string): Resultado {
   const partes = crudo.split(/\s+/);
   const cmd = partes[0].toLowerCase();
-  const args = partes.slice(1).filter((x) => !x.startsWith("-"));
+  const args = partes.slice(1).filter((x) => !x.startsWith("-") && x !== "aux");
   const arg = args[0] ?? "";
 
   switch (cmd) {
@@ -190,9 +195,10 @@ function ejecutar(crudo: string): Resultado {
           kv("help", "esta ayuda"),
           kv("neofetch", "quién soy, en una pantalla"),
           kv("whoami", "nombre y rol"),
+          kv("ps", "lista de proyectos en ejecución"),
           kv("ls [dir]", "listar archivos"),
           kv("cd <dir>", "entrar a una carpeta (cd .. para salir)"),
-          kv("cat <archivo>", "leer un archivo"),
+          kv("cat <archivo>", "leer un archivo (admite carpeta/*)"),
           kv("open <proyecto>", "abrir la página completa de un proyecto"),
           kv("contacto", "cómo escribirme"),
           kv("rev", "acelera el motor"),
@@ -202,20 +208,23 @@ function ejecutar(crudo: string): Resultado {
         ],
       };
     case "neofetch":
-      return { out: neofetch(), gear: 0 };
+      return { out: neofetch() };
     case "whoami":
       return { out: [t(`${datos.nombre} · ${datos.rol.toLowerCase()}`), d(datos.frase)] };
+    case "ps":
+      return { out: procesos() };
     case "pwd":
       return { out: [t(`/home/${datos.usuario}${estado.cwd ? `/${estado.cwd}` : ""}`)] };
     case "history":
       return { out: estado.hist.length ? estado.hist.map((x, i) => kv(String(i + 1), x)) : [d("(sin historial todavía)")] };
     case "clear":
-      return { out: [], clear: true, gear: 0 };
+      return { out: [], clear: true };
     case "contacto":
     case "contact":
-      return { out: contacto(), gear: 4 };
+      return { out: contacto() };
     case "rev":
-      return { out: [w("vrrrooOOOOM!!  ▮▮▮▮▮▮▮▮▮▮▮▮"), d("rpm 12000 · zona roja")], rpm: 12000 };
+      document.dispatchEvent(new CustomEvent("rev")); // el escenario sube el tacómetro
+      return { out: [w("vrrrooOOOOM!!  ▮▮▮▮▮▮▮▮▮▮▮▮"), d("rpm 12000 · zona roja")] };
     case "sudo":
       return { out: [w(`${datos.usuario} no está en el archivo sudoers. Este incidente será reportado.`), d("// fsociety ya lo sabe.")] };
     case "exit":
@@ -225,27 +234,34 @@ function ejecutar(crudo: string): Resultado {
     case "ls": {
       const ruta = resolver(arg, estado.cwd);
       const lista = DIRS[ruta];
-      if (lista) {
-        return {
-          out: lista.map((x) => (x.endsWith("/") ? ln("", "acc", x, "acc") : t(x))),
-          gear: ruta === "proyectos" ? 1 : ruta === "garaje" ? 3 : 0,
-        };
-      }
+      if (lista) return { out: lista.map((x) => (x.endsWith("/") ? ln("", "acc", x, "acc") : t(x))) };
       if (FILES[ruta]) return { out: [t(arg)] };
       return { out: [w(`ls: no se puede acceder a '${arg}': No existe el archivo o directorio`)] };
     }
 
     case "cd": {
       const ruta = arg ? resolver(arg, estado.cwd) : "";
-      if (DIRS[ruta] !== undefined) return { out: [], cwd: ruta, gear: marchaDe(ruta) };
+      if (DIRS[ruta] !== undefined) return { out: [], cwd: ruta };
       return { out: [w(`bash: cd: ${arg}: No existe el archivo o directorio`)] };
     }
 
     case "cat": {
       if (!arg) return { out: [w("cat: falta el nombre del archivo")] };
+      // cat carpeta/*  ->  todos los archivos de la carpeta
+      if (arg.endsWith("/*")) {
+        const carpeta = resolver(arg.slice(0, -2), estado.cwd);
+        const archivos = (DIRS[carpeta] ?? []).filter((x) => !x.endsWith("/"));
+        if (!archivos.length) return { out: [w(`cat: ${arg}: No existe el archivo o directorio`)] };
+        const out: Linea[] = [];
+        archivos.forEach((x, i) => {
+          if (i) out.push(gap());
+          out.push(...FILES[carpeta ? `${carpeta}/${x}` : x]());
+        });
+        return { out };
+      }
       const ruta = resolver(arg, estado.cwd);
       const archivo = FILES[ruta];
-      if (archivo) return { out: archivo(), gear: marchaDe(ruta) };
+      if (archivo) return { out: archivo() };
       if (DIRS[ruta] !== undefined) return { out: [w(`cat: ${arg}: es un directorio`)] };
       return { out: [w(`cat: ${arg}: No existe el archivo o directorio`)] };
     }
@@ -265,45 +281,49 @@ function ejecutar(crudo: string): Resultado {
 }
 
 // --- Pintar en pantalla
-function pintar(lineas: Linea[]) {
+/** Un bloque agrupa un comando y su salida. Los automáticos llevan data-etapa. */
+function nuevoBloque(etapa?: number): HTMLElement {
+  const bloque = document.createElement("div");
+  bloque.className = "bloque";
+  if (etapa !== undefined) bloque.dataset.fase = String(etapa);
+  salida.append(bloque);
+  // memoria acotada: se descartan los bloques de usuario más antiguos
+  const propios = salida.querySelectorAll(".bloque:not([data-fase])");
+  if (propios.length > 60) propios[0].remove();
+  return bloque;
+}
+
+function pintarEn(bloque: HTMLElement, lineas: Linea[]) {
   const frag = document.createDocumentFragment();
-  for (const l of lineas) {
+  lineas.forEach((l, i) => {
     const fila = document.createElement("div");
     fila.className = "linea";
-    if (l.a) {
-      const pre = document.createElement("span");
-      pre.className = `c-${l.ca ?? "bone"}`;
-      pre.textContent = l.a;
-      fila.append(pre);
-    }
-    const texto = document.createElement(l.href ? "a" : "span");
-    texto.className = `c-${l.cb ?? "bone"}`;
-    texto.textContent = l.b || " ";
-    if (l.href && texto instanceof HTMLAnchorElement) {
-      texto.href = l.href;
-      texto.classList.add("enlace");
-      if (/^https?:/.test(l.href)) {
-        texto.target = "_blank";
-        texto.rel = "noopener";
+    fila.style.setProperty("--i", String(Math.min(i, 24))); // retraso escalonado de la animación de entrada
+    const parte = (texto: string, color: Color | undefined, enlace?: string) => {
+      const el = document.createElement(enlace ? "a" : "span");
+      el.className = `c-${color ?? "bone"}`;
+      el.textContent = texto;
+      if (enlace && el instanceof HTMLAnchorElement) {
+        el.href = enlace;
+        el.classList.add("enlace");
+        if (/^https?:/.test(enlace)) {
+          el.target = "_blank";
+          el.rel = "noopener";
+        }
       }
-    }
-    fila.append(texto);
+      return el;
+    };
+    if (l.a) fila.append(parte(l.a, l.ca));
+    fila.append(parte(l.b || " ", l.cb, l.href));
+    if (l.c) fila.append(parte(l.c, l.cc));
     frag.append(fila);
-  }
-  salida.append(frag);
-  while (salida.childElementCount > 300) salida.firstElementChild?.remove();
+  });
+  bloque.append(frag);
   scroll.scrollTop = scroll.scrollHeight;
 }
 
 function actualizarPanel() {
-  const { rpm, gear, hist, cwd } = estado;
-  const roja = rpm > 9500;
-  rpmBarra.style.width = `${Math.round((rpm / 12000) * 100)}%`;
-  rpmBarra.classList.toggle("roja", roja);
-  rpmTexto.textContent = `${Math.round(rpm / 50) * 50} rpm${roja ? " · zona roja" : ""}`;
-  rpmTexto.className = `mt-2 text-[13px] ${roja ? "text-motor" : "text-agua"}`;
-  marchaEl.textContent = MARCHAS[gear] ?? "N";
-  marchaNombre.textContent = NOMBRES[gear] ?? "home";
+  const { hist, cwd } = estado;
   cuentaEl.textContent = String(hist.length);
   historialEl.replaceChildren(
     ...(hist.length ? hist.slice(-6).reverse() : ["—"]).map((x) => {
@@ -314,33 +334,90 @@ function actualizarPanel() {
     }),
   );
   promptEl.textContent = prompt(cwd);
-  document.querySelectorAll<HTMLElement>("[data-tab]").forEach((tab) => {
-    tab.setAttribute("aria-current", Number(tab.dataset.tab) === gear ? "true" : "false");
-  });
 }
 
+/** Ejecuta lo que escribió el visitante. */
 function correr(entrada: string) {
   const crudo = entrada.trim();
   const eco = ln(`${prompt(estado.cwd)} `, "acc", crudo, "bone");
   input.value = "";
   estado.hi = -1;
   if (!crudo) {
-    pintar([eco]);
+    pintarEn(nuevoBloque(), [eco]);
     return;
   }
   const r = ejecutar(crudo);
-  estado.n += 1;
   estado.hist = [...estado.hist, crudo].slice(-50);
   if (r.clear) salida.replaceChildren();
-  else pintar([eco, ...r.out]);
+  else pintarEn(nuevoBloque(), [eco, ...r.out]);
   if (r.cwd !== undefined) estado.cwd = r.cwd;
-  if (r.gear !== undefined) estado.gear = r.gear;
-  // Cada comando sube las rpm; `rev` las lleva a zona roja y `clear` las resetea
-  estado.rpm = r.rpm ?? (r.clear ? 1100 : Math.min(9000, 1100 + estado.n * 650));
   actualizarPanel();
   if (r.abrir) setTimeout(() => (location.href = r.abrir as string), 350);
 }
 
+// --- API para el escenario (etapas automáticas según el scroll)
+type Saltar = () => boolean; // true = no animar (terminar de golpe)
+
+async function arranque(saltar: Saltar) {
+  const bloque = nuevoBloque(0);
+  let visto = false;
+  try {
+    visto = sessionStorage.getItem("boot-visto") === "1";
+    sessionStorage.setItem("boot-visto", "1");
+  } catch {}
+  const lineas = [
+    ln("> iniciando garaje.sys ........ ", "dim", "ok", "acc"),
+    ln(`> abriendo sesión ${datos.usuario}@garaje ... `, "dim", "ok", "acc"),
+    ln("> ", "dim", "acceso concedido. bienvenido.", "acc"),
+  ];
+  for (const l of lineas) {
+    pintarEn(bloque, [l]);
+    if (!visto && !reducir && !saltar()) await esperar(150);
+  }
+  const hayExplorador = matchMedia("(min-width: 900px)").matches;
+  pintarEn(bloque, [
+    gap(),
+    ...neofetch(),
+    gap(),
+    d("↓ haz scroll: la terminal avanza sola."),
+    d(hayExplorador ? "También puedes escribir help o usar el explorador." : "También puedes escribir help o tocar un comando de abajo."),
+  ]);
+}
+
+/** Teclea un comando en la línea de comandos y lo ejecuta (sin tocar el historial del visitante). */
+async function teclearYCorrer(cmd: string, etapa: number, saltar: Saltar) {
+  const previo = input.value;
+  input.readOnly = true;
+  input.value = "";
+  for (const ch of cmd) {
+    input.value += ch;
+    if (!saltar()) await esperar(14 + Math.random() * 22);
+  }
+  if (!saltar()) await esperar(220);
+  input.value = previo;
+  input.readOnly = false;
+  const r = ejecutar(cmd);
+  pintarEn(nuevoBloque(etapa), [ln(`${prompt(estado.cwd)} `, "acc", cmd, "bone"), ...r.out]);
+}
+
+export const terminal = {
+  /** Muestra una etapa: la 0 es el arranque; las demás teclean sus comandos. */
+  async mostrar(etapa: number, cmds: string[], saltar: Saltar) {
+    if (etapa === 0) await arranque(saltar);
+    else for (const c of cmds) await teclearYCorrer(c, etapa, saltar);
+  },
+  /** Quita (con un fundido) lo que escribió una etapa: así el scroll hacia arriba "rebobina". */
+  async quitar(etapa: number) {
+    const bloques = salida.querySelectorAll<HTMLElement>(`[data-fase="${etapa}"]`);
+    if (!bloques.length) return;
+    bloques.forEach((b) => b.classList.add("sale"));
+    if (!reducir) await esperar(220);
+    bloques.forEach((b) => b.remove());
+    scroll.scrollTop = scroll.scrollHeight;
+  },
+};
+
+// --- Autocompletado y eventos
 function autocompletar(texto: string): string {
   const i = texto.lastIndexOf(" ");
   if (i < 0) {
@@ -354,8 +431,8 @@ function autocompletar(texto: string): string {
   return c.length === 1 ? cabeza + c[0] : texto;
 }
 
-// --- Eventos
 input.addEventListener("keydown", (e) => {
+  if (input.readOnly) return;
   if (e.key === "Enter") {
     e.preventDefault();
     correr(input.value);
@@ -393,38 +470,18 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// --- Arranque
-async function iniciar() {
-  actualizarPanel();
-  let visto = false;
-  try {
-    visto = sessionStorage.getItem("boot-visto") === "1";
-    sessionStorage.setItem("boot-visto", "1");
-  } catch {}
-
-  const arranque = [
-    ln("> iniciando garaje.sys ........ ", "dim", "ok", "acc"),
-    ln(`> abriendo sesión ${datos.usuario}@garaje ... `, "dim", "ok", "acc"),
-    ln("> ", "dim", "acceso concedido. bienvenido.", "acc"),
-  ];
-  if (visto || reducir) pintar(arranque);
-  else {
-    for (const l of arranque) {
-      pintar([l]);
-      await esperar(140);
-    }
-  }
-  const hayExplorador = matchMedia("(min-width: 900px)").matches;
-  pintar([
-    gap(),
-    ...neofetch(),
-    gap(),
-    d(hayExplorador ? "Escribe help, usa el explorador de la izquierda o toca un comando de abajo." : "Escribe help o toca un comando de abajo."),
-  ]);
-
-  // Enlaces desde otras páginas: /#proyectos, /#sobre-mi, /#garaje, /#contacto
-  const tab = location.hash ? datos.tabs.find((x) => x.href === `/${location.hash}`) : undefined;
-  if (tab && tab.cmd !== "neofetch") correr(tab.cmd);
-  if (punteroFino) input.focus();
+// La rueda del ratón sobre la salida sigue moviendo la PÁGINA (el scroll dirige la terminal).
+// La salida se puede recorrer con la barra, el teclado o el dedo.
+if (punteroFino) {
+  scroll.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.ctrlKey) return;
+      e.preventDefault();
+      scrollBy(0, e.deltaY);
+    },
+    { passive: false },
+  );
 }
-iniciar();
+
+actualizarPanel();
