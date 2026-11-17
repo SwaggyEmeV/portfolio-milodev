@@ -98,7 +98,14 @@ const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
       <div class="leyenda" aria-hidden="true">
         <span><i class="ley ley-rojo"></i> sin explorar</span>
         <span><i class="ley ley-agua"></i> comprometido</span>
-        <span class="ley-ayuda">pulsa un nodo · arrastra para moverlo</span>
+        <span class="ley-ayuda">pulsa un nodo · arrastra el fondo · rueda para zoom</span>
+      </div>
+
+      <div class="zoom" role="group" aria-label="Zoom del mapa">
+        <button type="button" data-zoom="in" aria-label="Acercar" title="Acercar (+)">+</button>
+        <output class="zoom-n" data-zoom-n aria-live="off">×1.0</output>
+        <button type="button" data-zoom="out" aria-label="Alejar" title="Alejar (−)">−</button>
+        <button type="button" data-zoom="reset" aria-label="Restablecer vista" title="Restablecer (0)">⌖</button>
       </div>
 
       <button type="button" class="abrir-consola" data-consola-abrir aria-label="Abrir la consola">

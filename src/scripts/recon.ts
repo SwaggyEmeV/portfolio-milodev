@@ -88,12 +88,14 @@ function arrancar(raiz: HTMLElement, d: Datos) {
   /* ============================================================
      MAPA
      ============================================================ */
+  const zoomN = $("[data-zoom-n]");
   const mapa = crearMapa({
     canvas: $<HTMLCanvasElement>("[data-mapa]"),
     nodos,
     enlaces,
     reducido,
     onAbrir: (abre) => abrir(abre),
+    onZoom: (k) => { zoomN.textContent = `×${k.toFixed(1)}`; },
     onHover: (id) => {
       raiz.querySelectorAll(".obj.hover").forEach((b) => b.classList.remove("hover"));
       if (id) raiz.querySelector(`.obj[data-host="${id}"]`)?.classList.add("hover");
@@ -516,6 +518,16 @@ function arrancar(raiz: HTMLElement, d: Datos) {
   });
   $("[data-d-cerrar]").addEventListener("click", cerrar);
 
+  // Botones de zoom (+ / − / restablecer)
+  raiz.querySelectorAll<HTMLElement>("[data-zoom]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const a = b.dataset.zoom;
+      if (a === "in") mapa.zoom(1.3);
+      else if (a === "out") mapa.zoom(1 / 1.3);
+      else mapa.reiniciarVista();
+    }),
+  );
+
   addEventListener("keydown", (e) => {
     const escribiendo = (e.target as HTMLElement)?.matches?.("input, textarea");
     if (e.key === "Escape") {
@@ -526,6 +538,12 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     if (!escribiendo && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "`" || e.key === "/")) {
       e.preventDefault();
       abrirConsola();
+    }
+    // zoom con el teclado: + / − / 0
+    if (!escribiendo && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === "+" || e.key === "=") mapa.zoom(1.3);
+      else if (e.key === "-" || e.key === "_") mapa.zoom(1 / 1.3);
+      else if (e.key === "0") mapa.reiniciarVista();
     }
     // código Konami
     konami = e.key === KONAMI[konami] ? konami + 1 : e.key === KONAMI[0] ? 1 : 0;

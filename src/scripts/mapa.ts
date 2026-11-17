@@ -21,7 +21,11 @@ export type MapaOpts = {
   reducido: boolean;
   onAbrir: (abre: string, id: string) => void;
   onHover?: (id: string | null) => void;
+  onZoom?: (k: number) => void;
 };
+
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 3.2;
 
 type N = NodoDef & {
   x: number; y: number; vx: number; vy: number; fx: number; fy: number;
@@ -48,6 +52,33 @@ export function crearMapa(o: MapaOpts) {
   let resaltado: string | null = null; // desde la lista de objetivos
   const ptr = { x: 0, y: 0, dentro: false };
   let arrastre: { n: N; ox: number; oy: number; mov: boolean } | null = null;
+
+  // Cámara: pantalla = mundo * k + (x, y). `v` es la vista actual y `tv` la
+  // vista objetivo: la cámara se desliza suavemente de una a la otra.
+  const v = { k: 1, x: 0, y: 0 };
+  const tv = { k: 1, x: 0, y: 0 };
+  const aMundo = (sx: number, sy: number) => ({ x: (sx - v.x) / v.k, y: (sy - v.y) / v.k });
+  const aPantalla = (n: { x: number; y: number }) => ({ x: n.x * v.k + v.x, y: n.y * v.k + v.y });
+  // que el mundo nunca salga del todo de la pantalla
+  function limitar(t: typeof tv) {
+    t.k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, t.k));
+    t.x = Math.min(w - 80, Math.max(80 - w * t.k, t.x));
+    t.y = Math.min(h - 80, Math.max(80 - h * t.k, t.y));
+  }
+  /** Zoom multiplicativo anclado a un punto de la pantalla (por defecto, el centro). */
+  function zoomPor(f: number, sx = w / 2, sy = h / 2) {
+    const k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, tv.k * f));
+    const mx = (sx - tv.x) / tv.k, my = (sy - tv.y) / tv.k;
+    tv.k = k; tv.x = sx - mx * k; tv.y = sy - my * k;
+    limitar(tv);
+    if (reducido) Object.assign(v, tv);
+    o.onZoom?.(tv.k);
+  }
+  function reiniciarVista() {
+    Object.assign(tv, { k: 1, x: 0, y: 0 });
+    if (reducido) Object.assign(v, tv);
+    o.onZoom?.(1);
+  }
 
   const nodos: N[] = o.nodos.map((d) => ({
     ...d,
@@ -135,7 +166,8 @@ export function crearMapa(o: MapaOpts) {
       }
       // el puntero empuja los nodos cercanos
       if (ptr.dentro && !arrastre && !frio) {
-        const dx = n.x - ptr.x, dy = n.y - ptr.y;
+        const pw = aMundo(ptr.x, ptr.y);
+        const dx = n.x - pw.x, dy = n.y - pw.y;
         const d = Math.sqrt(dx * dx + dy * dy) + 0.01;
         if (d < 90) { const f = ((90 - d) / 90) * 0.5; n.fx += (dx / d) * f; n.fy += (dy / d) * f; }
       }
@@ -170,8 +202,17 @@ export function crearMapa(o: MapaOpts) {
     if (!reducido) sweep = (sweep + dt * 0.0105) % TAU;
     paso(dt);
 
+    // la cámara se desliza hacia su vista objetivo
+    const suave = Math.min(1, 0.2 * dt);
+    v.k += (tv.k - v.k) * suave;
+    v.x += (tv.x - v.x) * suave;
+    v.y += (tv.y - v.y) * suave;
+    if (Math.abs(tv.k - v.k) < 0.0005) v.k = tv.k;
+
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
+    // todo lo que sigue se dibuja en coordenadas del mundo (con zoom y desplazamiento)
+    ctx.setTransform(dpr * v.k, 0, 0, dpr * v.k, dpr * v.x, dpr * v.y);
     ctx.lineWidth = 1;
     ctx.setLineDash([]);
     const t = ahora - t0;
@@ -265,7 +306,9 @@ export function crearMapa(o: MapaOpts) {
       else dibujarHoja(n, e, foco);
     }
 
-    // --- retículo del puntero ---
+    // --- retículo y fichas: en coordenadas de pantalla (sin zoom) ---
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 1;
     if (iniciado && ptr.dentro && !reducido) {
       ctx.strokeStyle = rgba(AGUA, 0.1);
       ctx.setLineDash([2, 6]);
@@ -276,7 +319,8 @@ export function crearMapa(o: MapaOpts) {
       ctx.setLineDash([]);
       ctx.strokeStyle = rgba(AGUA, 0.55);
       ctx.beginPath(); ctx.arc(ptr.x, ptr.y, 9, 0, TAU); ctx.stroke();
-      texto(`x:${Math.round(ptr.x)} y:${Math.round(ptr.y)}`, ptr.x + 16, ptr.y - 12, 9.5, rgba(NIEBLA, 0.9), "left");
+      const pw = aMundo(ptr.x, ptr.y);
+      texto(`x:${Math.round(pw.x)} y:${Math.round(pw.y)} ×${v.k.toFixed(1)}`, ptr.x + 16, ptr.y - 12, 9.5, rgba(NIEBLA, 0.9), "left");
     }
 
     // --- ficha del nodo bajo el puntero ---
@@ -376,8 +420,10 @@ export function crearMapa(o: MapaOpts) {
     ctx.font = `500 10px ${FUENTE}`;
     const ancho = Math.max(...lineas.map((l) => ctx.measureText(l).width)) + 22;
     const alto = lineas.length * 14 + 12;
-    let x = n.x + n.r + 16, y = n.y - alto / 2;
-    if (x + ancho > w - 6) x = n.x - n.r - 16 - ancho;
+    const p = aPantalla(n);
+    const rr = n.r * v.k;
+    let x = p.x + rr + 16, y = p.y - alto / 2;
+    if (x + ancho > w - 6) x = p.x - rr - 16 - ancho;
     y = Math.max(6, Math.min(h - alto - 6, y));
     ctx.fillStyle = rgba(NOCHE, 0.94);
     ctx.fillRect(x, y, ancho, alto);
@@ -389,54 +435,116 @@ export function crearMapa(o: MapaOpts) {
   }
 
   /* ---------- puntero ---------- */
+  // x, y en coordenadas de pantalla
   function bajo(x: number, y: number): N | null {
     let mejor: N | null = null, md = Infinity;
     for (const n of nodos) {
       if (n.entra < 0.6) continue;
-      const rr = Math.max(n.r + 9, 17);
-      const d = Math.hypot(n.x - x, n.y - y);
+      const p = aPantalla(n);
+      const rr = Math.max(n.r * v.k + 9, 17);
+      const d = Math.hypot(p.x - x, p.y - y);
       if (d < rr && d < md) { mejor = n; md = d; }
     }
     return mejor;
   }
-  const local = (e: PointerEvent) => {
+  const local = (e: MouseEvent) => {
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
+  function cursor() {
+    canvas.style.cursor = hover ? "pointer" : pan?.mov ? "grabbing" : "crosshair";
+  }
   function cambiarHover(n: N | null) {
     if (n === hover) return;
     hover = n;
-    canvas.style.cursor = n ? "pointer" : "crosshair";
+    cursor();
     o.onHover?.(n ? n.id : null);
   }
+
+  // Punteros activos: 1 = arrastrar nodo o desplazar el mapa · 2 = pellizco (zoom)
+  const punteros = new Map<number, { x: number; y: number }>();
+  let pan: { mov: boolean; x0: number; y0: number } | null = null;
+  let pinch: { d: number } | null = null;
+  const separacion = () => {
+    const [a, b] = [...punteros.values()];
+    return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  };
 
   canvas.addEventListener("pointermove", (e) => {
     const p = local(e);
     ptr.x = p.x; ptr.y = p.y; ptr.dentro = true;
+    const prev = punteros.get(e.pointerId);
+    if (prev) punteros.set(e.pointerId, p);
+    if (pinch && punteros.size === 2) {
+      const s = separacion();
+      if (pinch.d > 0) zoomPor(s.d / pinch.d, s.x, s.y);
+      pinch.d = s.d;
+      return;
+    }
     if (arrastre) {
       if (Math.hypot(p.x - arrastre.ox, p.y - arrastre.oy) > 5) arrastre.mov = true;
-      if (arrastre.mov) { arrastre.n.x = p.x; arrastre.n.y = p.y; arrastre.n.vx = arrastre.n.vy = 0; }
+      if (arrastre.mov) {
+        const pw = aMundo(p.x, p.y);
+        arrastre.n.x = pw.x; arrastre.n.y = pw.y; arrastre.n.vx = arrastre.n.vy = 0;
+      }
+      return;
+    }
+    if (pan && prev) {
+      if (!pan.mov && Math.hypot(p.x - pan.x0, p.y - pan.y0) > 4) { pan.mov = true; cursor(); }
+      if (pan.mov) {
+        tv.x += p.x - prev.x; tv.y += p.y - prev.y;
+        limitar(tv);
+        v.x = tv.x; v.y = tv.y;
+      }
       return;
     }
     cambiarHover(bajo(p.x, p.y));
   });
-  canvas.addEventListener("pointerleave", () => { if (!arrastre) { ptr.dentro = false; cambiarHover(null); } });
+  canvas.addEventListener("pointerleave", () => {
+    if (!arrastre && !pan) { ptr.dentro = false; cambiarHover(null); }
+  });
   canvas.addEventListener("pointerdown", (e) => {
     const p = local(e);
     ptr.x = p.x; ptr.y = p.y; ptr.dentro = true;
+    punteros.set(e.pointerId, p);
+    canvas.setPointerCapture(e.pointerId);
+    if (punteros.size === 2) { arrastre = null; pan = null; pinch = { d: separacion().d }; return; }
     const n = bajo(p.x, p.y);
     cambiarHover(n);
-    if (n) { arrastre = { n, ox: p.x, oy: p.y, mov: false }; canvas.setPointerCapture(e.pointerId); }
+    if (n) arrastre = { n, ox: p.x, oy: p.y, mov: false };
+    else pan = { mov: false, x0: p.x, y0: p.y };
   });
   const soltar = (e: PointerEvent) => {
-    if (!arrastre) return;
-    const { n, mov } = arrastre;
-    arrastre = null;
-    if (e.type === "pointerup" && !mov) o.onAbrir(n.abre, n.id);
+    punteros.delete(e.pointerId);
+    if (punteros.size < 2) pinch = null;
+    if (pan) { pan = null; cursor(); }
+    if (arrastre) {
+      const { n, mov } = arrastre;
+      arrastre = null;
+      if (e.type === "pointerup" && !mov) o.onAbrir(n.abre, n.id);
+    }
     if (e.pointerType !== "mouse") { ptr.dentro = false; cambiarHover(null); }
   };
   canvas.addEventListener("pointerup", soltar);
   canvas.addEventListener("pointercancel", soltar);
+
+  // Rueda del ratón (y pellizco del trackpad): zoom hacia el puntero
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      const p = local(e);
+      const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1;
+      const dy = Math.max(-120, Math.min(120, e.deltaY * px));
+      zoomPor(Math.exp(-dy * 0.0018), p.x, p.y);
+    },
+    { passive: false },
+  );
+  // Doble clic en el vacío: vuelve a la vista inicial
+  canvas.addEventListener("dblclick", (e) => {
+    const p = local(e);
+    if (!bajo(p.x, p.y)) reiniciarVista();
+  });
 
   /* ---------- arranque ---------- */
   new ResizeObserver(medir).observe(canvas);
@@ -446,13 +554,21 @@ export function crearMapa(o: MapaOpts) {
   requestAnimationFrame(dibujar);
 
   return {
-    /** Empieza a mostrar los nodos (tras la intro). */
-    iniciar() { iniciado = true; t0 = performance.now(); },
+    /** Empieza a mostrar los nodos (tras la intro). La cámara arranca alejada y se acerca. */
+    iniciar() {
+      iniciado = true;
+      t0 = performance.now();
+      if (!reducido) { v.k = 0.55; v.x = w * 0.225; v.y = h * 0.225; }
+    },
     /** Marca un nodo como comprometido (relleno agua). */
     setVisitado(id: string) { const n = porId.get(id); if (n) { n.vis = true; n.pulso = 1; } },
     /** Expediente abierto (corchetes girando alrededor del nodo). */
     setActivo(abre: string | null) { activo = abre; },
     /** Resalta un nodo desde fuera (lista de objetivos). */
     resaltar(id: string | null) { resaltado = id; },
+    /** Zoom desde fuera (botones + / −). */
+    zoom(f: number) { zoomPor(f); },
+    /** Vuelve a la vista inicial. */
+    reiniciarVista,
   };
 }

@@ -263,6 +263,22 @@ html:not(.js) .recon { display: none; }
 .ley-ayuda { display: none; }
 @media (min-width: 640px) { .ley-ayuda { display: inline; opacity: 0.7; } }
 
+/* controles de zoom */
+.zoom {
+  position: absolute; top: 14px; left: 16px; z-index: 4;
+  display: flex; flex-direction: column; align-items: stretch; width: 40px;
+  border: 1px solid var(--color-borde); background: color-mix(in srgb, var(--color-noche) 85%, transparent);
+}
+.zoom button {
+  min-height: 40px; border: 0; background: transparent; color: var(--color-luz);
+  font: 500 17px/1 var(--font-mono); cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.zoom button:hover { background: color-mix(in srgb, var(--color-agua) 14%, transparent); color: var(--color-agua); }
+.zoom button + button, .zoom-n + button { border-top: 1px solid var(--color-borde); }
+.zoom-n {
+  display: block; padding: 5px 0; border-top: 1px solid var(--color-borde); border-bottom: 1px solid var(--color-borde);
+  text-align: center; font-size: 10px; color: var(--color-niebla); font-variant-numeric: tabular-nums;
+}
 .abrir-consola {
   position: absolute; right: 16px; bottom: 12px; z-index: 4;
   display: inline-flex; min-height: 40px; align-items: center; gap: 8px; padding: 0 14px;
