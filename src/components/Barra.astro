@@ -1,0 +1,22 @@
+---
+// Barra de estado inferior (estilo tmux) y navegación del sitio: una pestaña por host.
+//  - En el home, el script intercepta el clic (data-abrir) y abre el expediente en el mapa.
+//  - En las demás páginas son enlaces normales que vuelven al home con el #hash.
+import { site, tabs } from "../data/site";
+
+interface Props {
+  activa?: string; // id del host marcado
+}
+const { activa } = Astro.props;
+---
+
+<nav aria-label="Principal" class="barra">
+  <span class="barra-id">[{site.usuario}@{site.host}]</span>
+  {tabs.map((t) => (
+    <a href={t.href} class="tab" data-abrir={t.id} data-tab={t.id} aria-current={t.id === activa ? "page" : undefined}>
+      {t.etiqueta}
+    </a>
+  ))}
+  <span class="flex-1"></span>
+  <span class="barra-fin">tty1 · utf-8 · v3</span>
+</nav>
