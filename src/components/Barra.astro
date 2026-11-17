@@ -1,29 +1,22 @@
 ---
-// Barra inferior estilo tmux, también es la navegación del sitio.
-//  - interactiva (home): los botones ejecutan un comando en la terminal.
-//  - no interactiva (otras páginas): son enlaces que vuelven al home.
+// Barra de estado inferior (estilo tmux) y navegación del sitio: una pestaña por host.
+//  - En el home, el script intercepta el clic (data-abrir) y abre el expediente en el mapa.
+//  - En las demás páginas son enlaces normales que vuelven al home con el #hash.
 import { site, tabs } from "../data/site";
 
 interface Props {
-  interactiva?: boolean;
-  activa?: number; // índice de la pestaña marcada
+  activa?: string; // id del host marcado
 }
-const { interactiva = false, activa = 0 } = Astro.props;
+const { activa } = Astro.props;
 ---
 
-<nav aria-label="Principal" class="flex shrink-0 items-stretch overflow-x-auto bg-agua text-[13px] text-asfalto">
-  <span class="flex min-h-11 shrink-0 items-center bg-asfalto px-4 font-semibold text-agua">[{site.usuario}]</span>
-  {tabs.map((t, i) =>
-    interactiva ? (
-      <button type="button" class="tab" data-ir={i} data-tab={i} aria-current={i === activa ? "true" : "false"}>
-        {t.etiqueta}
-      </button>
-    ) : (
-      <a href={t.href} class="tab" data-tab={i} aria-current={i === activa ? "page" : undefined}>
-        {t.etiqueta}
-      </a>
-    ),
-  )}
+<nav aria-label="Principal" class="barra">
+  <span class="barra-id">[{site.usuario}@{site.host}]</span>
+  {tabs.map((t) => (
+    <a href={t.href} class="tab" data-abrir={t.id} data-tab={t.id} aria-current={t.id === activa ? "page" : undefined}>
+      {t.etiqueta}
+    </a>
+  ))}
   <span class="flex-1"></span>
-  <span class="hidden min-h-11 items-center px-4 lg:flex">{site.usuario}@garaje · tty1 · utf-8</span>
+  <span class="barra-fin">tty1 · utf-8 · v3</span>
 </nav>

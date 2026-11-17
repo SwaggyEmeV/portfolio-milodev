@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Terminal from "../components/Terminal.astro";
+import Recon from "../components/Recon.astro";
 import { getCollection } from "astro:content";
 
 // Proyectos: primero los destacados, luego los más recientes.
@@ -12,5 +12,5 @@ const proyectos = (await getCollection("proyectos")).sort(
 ---
 
 <Layout>
-  <Terminal proyectos={proyectos} />
+  <Recon proyectos={proyectos} />
 </Layout>

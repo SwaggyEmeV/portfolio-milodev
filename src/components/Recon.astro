@@ -1,0 +1,175 @@
+---
+// El home es un "mapa de red": el visitante hace reconocimiento del objetivo
+// (yo). Cada nodo es un host que abre su expediente. Este componente pinta el
+// marco y le pasa los datos a los scripts:
+//   src/scripts/recon.ts -> intro, expedientes, tráfico, consola
+//   src/scripts/mapa.ts  -> el canvas con los nodos
+import type { CollectionEntry } from "astro:content";
+import Barra from "./Barra.astro";
+import { site, hosts } from "../data/site";
+
+interface Props {
+  proyectos: CollectionEntry<"proyectos">[];
+}
+const { proyectos } = Astro.props;
+
+// Datos que necesita el script en el navegador (se incrustan como JSON)
+const datos = {
+  usuario: site.usuario,
+  host: site.host,
+  nombre: site.nombre,
+  rol: site.rol,
+  frase: site.frase,
+  email: site.email,
+  github: site.github,
+  linkedin: site.linkedin,
+  sobreMi: site.sobreMi,
+  ficha: site.ficha,
+  tecnologias: site.tecnologias,
+  intereses: site.intereses,
+  hosts,
+  proyectos: proyectos.map((p) => ({
+    slug: p.id,
+    titulo: p.data.titulo,
+    resumen: p.data.resumen,
+    tecnologias: p.data.tecnologias,
+    destacado: p.data.destacado,
+    demo: p.data.demo,
+    repo: p.data.repo,
+    fecha: p.data.fecha.toISOString().slice(0, 10),
+  })),
+};
+// "<" escapado para que ningún texto pueda cerrar la etiqueta <script>
+const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
+---
+
+<h1 class="sr-only">{site.nombre} · {site.rol}</h1>
+
+<div class="recon" data-recon>
+  <!-- ===== FONDO ===== -->
+  <div class="recon-fondo" aria-hidden="true">
+    <div class="rejilla"></div>
+    <div class="foco"></div>
+    <div class="lineas"></div>
+    <div class="vineta"></div>
+  </div>
+
+  <!-- ===== BARRA SUPERIOR ===== -->
+  <header class="top">
+    <a href="/" class="marca glitch" data-text="MILO//DEV" aria-label="milodev, inicio">MILO//DEV</a>
+    <span class="top-rol">{site.nombre} · {site.rol}</span>
+    <span class="flex-1"></span>
+    <span class="top-dato hidden md:inline">sesión <b data-sesion>0x0000</b></span>
+    <span class="top-dato hidden sm:inline"><b data-reloj>00:00:00</b></span>
+    <span class="top-prog" title="Hosts comprometidos">
+      <span class="segs" aria-hidden="true">{hosts.map(() => <i></i>)}</span>
+      <span class="sr-only">hosts comprometidos</span>
+      <b data-n-vis>0</b>/{hosts.length}
+    </span>
+  </header>
+
+  <!-- ===== CUERPO: LATERAL + MAPA ===== -->
+  <div class="main">
+    <aside class="lateral">
+      <section class="marco lat-obj" aria-label="Objetivos">
+        <p class="lbl">objetivos · 10.13.37.0/24</p>
+        <ul>
+          {hosts.map((h, i) => (
+            <li>
+              <button type="button" class="obj" data-abrir={h.id} data-host={h.id}>
+                <span class="obj-led" aria-hidden="true"></span>
+                <span class="obj-nom"><b>{h.nombre}</b><small>{h.ip}</small></span>
+                <span class="obj-n">0{i}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="marco lat-trafico" aria-label="Tráfico de red">
+        <p class="lbl">tráfico · eth0 <span class="rec" aria-hidden="true">●</span></p>
+        <div class="sniffer" data-sniffer aria-hidden="true"></div>
+      </section>
+    </aside>
+
+    <section class="stage" aria-label="Mapa de red interactivo">
+      <canvas data-mapa class="mapa" aria-hidden="true"></canvas>
+
+      <div class="leyenda" aria-hidden="true">
+        <span><i class="ley ley-rojo"></i> sin explorar</span>
+        <span><i class="ley ley-agua"></i> comprometido</span>
+        <span class="ley-ayuda">pulsa un nodo · arrastra para moverlo</span>
+      </div>
+
+      <button type="button" class="abrir-consola" data-consola-abrir aria-label="Abrir la consola">
+        <span aria-hidden="true">&gt;_</span> consola
+      </button>
+
+      <!-- ===== EXPEDIENTE (se abre al pulsar un nodo) ===== -->
+      <aside class="dossier" data-dossier data-abierto="false" inert aria-label="Expediente">
+        <header class="d-cab">
+          <p class="d-ssh" data-d-ssh>ssh {site.usuario}@10.13.37.1</p>
+          <button type="button" class="d-cerrar" data-d-cerrar aria-label="Cerrar expediente">esc ✕</button>
+        </header>
+        <div class="hs" data-d-hs aria-hidden="true"><i data-d-hs-barra></i></div>
+        <p class="hs-txt" data-d-hs-txt aria-live="polite"></p>
+        <div class="d-cuerpo" data-d-cuerpo tabindex="-1"></div>
+      </aside>
+
+      <!-- ===== CONSOLA ===== -->
+      <section class="consola" data-consola hidden aria-label="Consola">
+        <div class="c-salida" data-c-salida role="log" aria-live="polite"></div>
+        <label class="c-fila">
+          <span class="c-prompt" data-c-prompt>{site.usuario}@{site.host}:~$</span>
+          <input
+            class="c-input"
+            type="text"
+            data-c-input
+            aria-label="Línea de comandos"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="escribe help…"
+          />
+        </label>
+      </section>
+    </section>
+  </div>
+
+  <Barra />
+
+  <!-- ===== INTRO ===== -->
+  <div class="intro" data-intro aria-hidden="true">
+    <div class="intro-caja">
+      <p class="intro-hola" data-i-hola></p>
+      <div class="intro-log" data-i-log></div>
+      <p class="intro-acceso" data-i-acceso hidden>ACCESS GRANTED</p>
+    </div>
+    <button type="button" class="intro-saltar" data-i-saltar>saltar ↵</button>
+  </div>
+</div>
+
+<!-- Resumen en HTML normal: lo leen buscadores y lectores de pantalla (y se ve si no hay JavaScript) -->
+<section class="resumen">
+  <p>{site.frase}</p>
+  <h2>Proyectos</h2>
+  <ul>
+    {proyectos.map((p) => (
+      <li>
+        <a href={`/proyectos/${p.id}`}>{p.data.titulo}</a> — {p.data.resumen}
+      </li>
+    ))}
+  </ul>
+  <h2>Sobre mí</h2>
+  {site.sobreMi.map((t) => <p>{t}</p>)}
+  <h2>Contacto</h2>
+  <p>
+    <a href={`mailto:${site.email}`}>{site.email}</a> · <a href={site.github}>GitHub</a> · <a href={site.linkedin}>LinkedIn</a>
+  </p>
+</section>
+
+<script type="application/json" id="datos-recon" set:html={datosJson} />
+
+<script>
+  import "../scripts/recon";
+</script>

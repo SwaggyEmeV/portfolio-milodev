@@ -17,7 +17,7 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0b0b0a" />
+    <meta name="theme-color" content="#050a0c" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -26,14 +26,14 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <title>{fullTitle}</title>
     <!-- is:inline = se ejecuta tal cual y al instante: marca que hay JavaScript (el CSS del escenario lo necesita) -->
     <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
-  <body class="bg-asfalto font-mono text-hueso antialiased">
+  <body class="bg-noche font-mono text-luz antialiased">
     <slot />
     <!-- Analytics y Speed Insights de Vercel (solo en producción) -->
     <Observabilidad />
