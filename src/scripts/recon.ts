@@ -2,6 +2,7 @@
 // El canvas con los nodos vive en mapa.ts; los datos llegan como JSON desde Recon.astro.
 import { crearMapa, type NodoDef } from "./mapa";
 import { crearCRT, corregirPuntero } from "./crt";
+import { iniciarBreach } from "./breach";
 import { descifrar, prefiereMenosMovimiento } from "./scramble";
 
 type Tec = { nombre: string; puerto: number; capa: string; estado: string };
@@ -10,7 +11,7 @@ type Proy = {
   destacado: boolean; demo?: string; repo?: string; fecha: string;
 };
 type Interes = { archivo: string; titulo: string; texto: string };
-type Host = { id: string; ip: string; nombre: string };
+type Host = { id: string; ip: string; nombre: string; secreto: string };
 type Datos = {
   usuario: string; host: string; nombre: string; rol: string; frase: string;
   email: string; github: string; linkedin: string; sobreMi: string[];
@@ -128,6 +129,70 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     if (avisar) sniff("SYS", b ? (gl ? "pantalla CRT encendida (WebGL)" : "pantalla CRT encendida (solo CSS: sin WebGL)") : "pantalla CRT apagada", b && !gl ? "alerta" : "");
   }
   crtBtn.addEventListener("click", () => crt(!crtOn));
+
+  /* ============================================================
+     BREACH: minijuego opcional (abre el archivo cifrado de un host)
+     ============================================================ */
+  const rotos = new Set<string>();
+  try {
+    const guardado = JSON.parse(localStorage.getItem("milodev-breach") || "[]");
+    if (Array.isArray(guardado)) guardado.forEach((k) => primarios.includes(k) && rotos.add(k));
+  } catch {}
+
+  function marcarRotos() {
+    raiz.querySelectorAll<HTMLElement>(".obj[data-host]").forEach((b) => {
+      if (rotos.has(b.dataset.host!)) b.setAttribute("data-brch", "");
+    });
+  }
+
+  /** Bloque del expediente: el botón para irrumpir, o el archivo ya descifrado. */
+  function bloqueBreach(key: string) {
+    if (!primarios.includes(key)) return "";
+    if (rotos.has(key)) {
+      return `<section class="brch-blk"><p class="d-eyebrow">// archivo cifrado · descifrado ⚡</p><p class="brch-secreto">${esc(hostPorId.get(key)!.secreto)}</p></section>`;
+    }
+    return `<section class="brch-blk"><p class="d-eyebrow">// archivo cifrado</p>
+      <p class="d-nota" style="margin-top:0">Este host guarda un archivo bloqueado. Es opcional: no hace falta para ver nada de lo anterior.</p>
+      <div class="d-acciones" style="margin-top:12px"><button type="button" class="btn-sec" data-breach="${esc(key)}">⚡ irrumpir</button></div></section>`;
+  }
+
+  let enBreach = false;
+  function breach(key: string) {
+    const h = hostPorId.get(key);
+    if (!h || !primarios.includes(key) || enBreach) return;
+    if (rotos.has(key)) return abrir(key);
+    enBreach = true;
+    cerrar();
+    if (matchMedia("(max-width: 859px)").matches) cerrarConsola();
+    sniff("BREACH", `iniciando intrusión en ${h.ip}`, "alerta");
+    iniciarBreach({
+      contenedor: $(".stage"),
+      reducido,
+      ip: h.ip,
+      nombre: h.nombre,
+      dificil: key === "core",
+      onFin: (ganado, motivo) => {
+        enBreach = false;
+        if (ganado) {
+          rotos.add(key);
+          try { localStorage.setItem("milodev-breach", JSON.stringify([...rotos])); } catch {}
+          marcarRotos();
+          sniff("PWN", `${h.ip} descifrado ⚡ (${rotos.size}/${primarios.length})`, "ok");
+          if (!consola.hidden) ln(`<span class="c-ok">breach ${esc(h.nombre)}: archivo descifrado</span>`);
+          abrir(key);
+          if (rotos.size === primarios.length) {
+            glitch();
+            toast("breach completo: has descifrado todos los archivos. eres de los míos.");
+          }
+        } else if (motivo !== "abortado") {
+          sniff("IDS", `intrusión detectada en ${h.ip}: conexión cortada`, "alerta");
+          if (!consola.hidden) ln(`breach ${esc(h.nombre)}: ${motivo === "tiempo" ? "tiempo agotado" : "buffer lleno"}`, "c-alerta");
+          glitch();
+        }
+        if (!consola.hidden) cInput.focus();
+      },
+    });
+  }
 
   /* ============================================================
      EXPEDIENTES
@@ -278,7 +343,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       if (yo !== ficha) return;
       fase(`conectado · ${v.ip}`);
       dHs.classList.add("listo");
-      dCuerpo.innerHTML = v.html;
+      dCuerpo.innerHTML = v.html + bloqueBreach(key);
       cancelarDescifrado = descifrar(dCuerpo, 850);
       if (!desdeHash) dCuerpo.focus({ preventScroll: true });
       if (primarios.includes(key)) visitar(key);
@@ -435,6 +500,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
         f("scan", "lista los hosts de la red"),
         f("connect <host>", "abre su expediente (nombre, ip o número)"),
         f("whoami", "quién soy"),
+        f("breach <host>", "minijuego: descifra el archivo de un host (opcional)"),
         f("crt [on|off]", "pantalla de tubo catódico (tecla C)"),
         f("stack", "escaneo de puertos (tecnologías)"),
         f("contacto", "canales para escribirme"),
@@ -495,7 +561,18 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       glitch();
     },
     fsociety() { comandos.hack([]); },
-    hack() {
+    breach(a) {
+      if (!a[0]) {
+        ln("uso: breach &lt;host&gt;  — minijuego opcional que descifra el archivo de un host", "c-alerta");
+        return comandos.scan([]);
+      }
+      const k = buscarHost(a.join(" "));
+      if (!k || !primarios.includes(k)) return ln(`breach: ${esc(a.join(" "))}: host no encontrado (usa un host principal, ver <b>scan</b>)`, "c-alerta");
+      if (rotos.has(k)) ln(`<span class="c-dim">ya descifrado. mostrando el archivo…</span>`);
+      breach(k);
+    },
+    hack(a) {
+      if (a?.[0]) return comandos.breach(a);
       glitch();
       ln(`<span class="c-ok">Hello, friend.</span>`);
       ln(`<span class="c-dim">"Controlar la información es controlar el mundo." — alguien, en una serie que me encanta.</span>`);
@@ -548,6 +625,8 @@ function arrancar(raiz: HTMLElement, d: Datos) {
      ============================================================ */
   // Cualquier elemento con data-abrir abre ese expediente (lista, pestañas, botones del expediente)
   raiz.addEventListener("click", (e) => {
+    const br = (e.target as HTMLElement).closest<HTMLElement>("[data-breach]");
+    if (br) { e.preventDefault(); return breach(br.dataset.breach!); }
     const el = (e.target as HTMLElement).closest<HTMLElement>("[data-abrir]");
     if (!el || (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1)) return;
     e.preventDefault();
@@ -686,6 +765,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       try { sessionStorage.setItem("milodev-intro", "1"); } catch {}
     }
     mapa.iniciar();
+    marcarRotos();
     try { if (localStorage.getItem("milodev-crt") === "1") crt(true, false); } catch {}
     sniff("SYS", `sesión iniciada · ${d.usuario}@${d.host}`, "ok");
     sniff("SYS", `${d.hosts.length} hosts detectados en 10.13.37.0/24`);

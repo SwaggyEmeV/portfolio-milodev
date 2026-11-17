@@ -61,13 +61,15 @@ export const site = {
 
 // Los "hosts" del mapa de red: el nodo central (core) y un nodo por sección.
 // `id` es también el #hash de la URL (/#proyectos abre ese expediente).
+// `secreto` es el "archivo cifrado" de cada host: se muestra al ganar el
+// minijuego de intrusión (breach). Cámbialos por lo que quieras.
 export const hosts = [
-  { id: "core", ip: "10.13.37.1", nombre: "miller" },
-  { id: "proyectos", ip: "10.13.37.10", nombre: "proyectos" },
-  { id: "stack", ip: "10.13.37.20", nombre: "stack" },
-  { id: "sobre-mi", ip: "10.13.37.30", nombre: "sobre_mi" },
-  { id: "garaje", ip: "10.13.37.40", nombre: "garaje" },
-  { id: "contacto", ip: "10.13.37.50", nombre: "contacto" },
+  { id: "core", ip: "10.13.37.1", nombre: "miller", secreto: "root:x:0:0:miller:/home/miller:/bin/zsh — la contraseña no es \"password\". probablemente." },
+  { id: "proyectos", ip: "10.13.37.10", nombre: "proyectos", secreto: "git log --oneline | head -1  →  \"arreglo definitivo (esta vez sí)\"" },
+  { id: "stack", ip: "10.13.37.20", nombre: "stack", secreto: "regla del stack: si funciona en producción, nadie lo toca un viernes." },
+  { id: "sobre-mi", ip: "10.13.37.30", nombre: "sobre_mi", secreto: "// TODO: acortar esta bio. las secciones \"sobre mí\" siempre suenan escritas por un robot muy serio." },
+  { id: "garaje", ip: "10.13.37.40", nombre: "garaje", secreto: "el ruido del motor es el mejor monitor de latencia: si suena raro, algo va mal." },
+  { id: "contacto", ip: "10.13.37.50", nombre: "contacto", secreto: "canal prioritario: si llegaste hasta aquí rompiendo cosas, pon \"Hello, friend.\" de asunto." },
 ];
 
 // Barra de estado inferior (estilo tmux): una pestaña por host.
