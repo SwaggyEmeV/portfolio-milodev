@@ -3,7 +3,6 @@ import Layout from "../layouts/Layout.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import Icon from "../components/Icon.astro";
-import Hero3D from "../components/Hero3D.astro";
 import { getCollection } from "astro:content";
 import { site } from "../data/site";
 
@@ -15,54 +14,66 @@ const proyectos = (await getCollection("proyectos")).sort(
 );
 
 const btnPrimario =
-  "rounded-lg bg-portal px-5 py-3 font-mono text-sm font-semibold text-asfalto transition hover:bg-portal-dark";
+  "inline-block rounded-lg bg-portal px-5 py-3 font-mono text-sm font-semibold text-asfalto shadow-[0_0_24px_-6px] shadow-portal transition-[background-color,translate] duration-200 hover:bg-portal-dark";
 const btnSecundario =
-  "rounded-lg border border-borde px-5 py-3 font-mono text-sm transition hover:border-portal hover:text-portal";
+  "inline-block rounded-lg border border-borde bg-asfalto/60 px-5 py-3 font-mono text-sm backdrop-blur transition-[border-color,color,translate] duration-200 hover:border-portal hover:text-portal";
+// Panel "cristal": deja ver la escena 3D detrás pero mantiene el texto legible
+const panel = "rounded-xl border border-borde bg-chasis/70 backdrop-blur-md";
+
+/*
+  data-escena="..."      -> marca la parada de la cámara 3D en esa sección
+  data-marcha-seccion    -> cada sección sube una marcha en el tacómetro
+  min-h-[90vh]           -> secciones altas: da tiempo al viaje de la cámara
+*/
 ---
 
 <Layout>
   <!-- ============ HERO ============ -->
-  <!-- Rejilla: en escritorio (lg:) texto a la izquierda y escena 3D a la derecha -->
-  <section class="grid items-center gap-8 py-12 sm:py-20 lg:grid-cols-[1.1fr_1fr] lg:py-28">
-    <!-- order-first: en móvil la escena 3D sale primero; en escritorio vuelve a la derecha -->
-    <div class="order-first h-[300px] sm:h-[420px] lg:order-last lg:h-[560px]">
-      <Hero3D />
-    </div>
+  <section data-escena="hero" class="grid min-h-[calc(100vh-4rem)] items-center gap-8 py-10 lg:grid-cols-[1.1fr_1fr]">
+    <!-- Hueco para el portal 3D: arriba en móvil, a la derecha en escritorio -->
+    <div aria-hidden="true" class="order-first h-[260px] sm:h-[340px] lg:order-last lg:h-[520px]"></div>
     <div>
-    <!-- Ventana de terminal -->
-    <div class="max-w-2xl overflow-hidden rounded-xl border border-borde bg-chasis/80 shadow-2xl shadow-black/40">
-      <div class="flex items-center gap-2 border-b border-borde px-4 py-3">
-        <span class="h-3 w-3 rounded-full bg-red-500/80"></span>
-        <span class="h-3 w-3 rounded-full bg-motor/80"></span>
-        <span class="h-3 w-3 rounded-full bg-portal/80"></span>
-        <span class="ml-3 font-mono text-xs text-humo">{site.usuario}@garaje: ~</span>
+      <!-- Ventana de terminal -->
+      <div class={`max-w-2xl overflow-hidden shadow-2xl shadow-black/40 ${panel}`}>
+        <div class="flex items-center gap-2 border-b border-borde px-4 py-3">
+          <span class="h-3 w-3 rounded-full bg-red-500/80"></span>
+          <span class="h-3 w-3 rounded-full bg-motor/80"></span>
+          <span class="h-3 w-3 rounded-full bg-portal/80"></span>
+          <span class="ml-3 font-mono text-xs text-humo">{site.usuario}@garaje: ~</span>
+        </div>
+        <div class="space-y-2 p-5 font-mono text-sm sm:text-base">
+          <p><span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$ whoami</p>
+          <p class="text-white">{site.nombre} · {site.rol.toLowerCase()}</p>
+          <p><span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$ cat intereses.txt</p>
+          <p class="text-humo">código · motos · mecánica · series de ciencia ficción y hackers</p>
+          <p>
+            <span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$
+            <span class="inline-block h-5 w-2.5 translate-y-1 animate-parpadeo bg-portal"></span>
+          </p>
+        </div>
       </div>
-      <div class="space-y-2 p-5 font-mono text-sm sm:text-base">
-        <p><span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$ whoami</p>
-        <p class="text-white">{site.nombre} · {site.rol.toLowerCase()}</p>
-        <p><span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$ cat intereses.txt</p>
-        <p class="text-humo">código · motos · mecánica · series de ciencia ficción y hackers</p>
-        <p>
-          <span class="text-portal">{site.usuario}@garaje</span>:<span class="text-motor">~</span>$
-          <span class="inline-block h-5 w-2.5 translate-y-1 animate-parpadeo bg-portal"></span>
-        </p>
-      </div>
-    </div>
 
-    <h1 class="mt-12 text-5xl font-bold tracking-tight text-white sm:text-7xl lg:text-6xl">
-      {site.nombre}<span class="text-portal">.</span>
-    </h1>
-    <p class="mt-4 font-mono text-lg text-portal sm:text-xl">&gt; {site.rol}</p>
-    <p class="mt-6 max-w-2xl text-lg text-humo">{site.frase}</p>
-    <div class="mt-8 flex flex-wrap gap-4">
-      <a href="#proyectos" class={btnPrimario}>./ver_proyectos</a>
-      <a href="#contacto" class={btnSecundario}>contactar</a>
-    </div>
+      <!-- glitch + data-text: el CSS duplica el texto en verde y naranja -->
+      <h1
+        class="glitch mt-10 text-5xl font-bold tracking-tight text-white drop-shadow-[0_0_25px_rgba(74,222,128,0.35)] sm:text-7xl lg:text-6xl"
+        data-text={`${site.nombre}.`}
+      >
+        {site.nombre}<span class="text-portal">.</span>
+      </h1>
+      <p class="mt-4 font-mono text-lg text-portal sm:text-xl">&gt; <span data-descifrar>{site.rol}</span></p>
+      <p class="mt-6 max-w-2xl text-lg text-humo">{site.frase}</p>
+      <div class="mt-8 flex flex-wrap gap-4">
+        <a href="#proyectos" data-iman class={btnPrimario}>./ver_proyectos</a>
+        <a href="#contacto" data-iman class={btnSecundario}>contactar</a>
+      </div>
+      <p class="mt-12 font-mono text-xs text-humo">
+        <span class="inline-block animate-bounce text-portal">↓</span> haz scroll para arrancar el viaje
+      </p>
     </div>
   </section>
 
   <!-- ============ PROYECTOS ============ -->
-  <section id="proyectos" class="scroll-mt-20 py-12">
+  <section id="proyectos" data-escena="proyectos" data-marcha-seccion class="flex min-h-[90vh] scroll-mt-20 flex-col justify-center py-16">
     <SectionTitle numero="01" titulo="proyectos" />
     <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {proyectos.map((p) => (
@@ -78,9 +89,9 @@ const btnSecundario =
   </section>
 
   <!-- ============ SOBRE MÍ ============ -->
-  <section id="sobre-mi" class="scroll-mt-20 py-12">
+  <section id="sobre-mi" data-escena="sobre-mi" data-marcha-seccion class="flex min-h-[90vh] scroll-mt-20 flex-col justify-center py-16">
     <SectionTitle numero="02" titulo="sobre_mí" />
-    <div data-reveal class="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr]">
+    <div data-reveal class={`mt-8 grid gap-10 p-6 sm:p-8 lg:grid-cols-[3fr_2fr] ${panel}`}>
       <div class="space-y-4 text-lg text-humo">
         {site.sobreMi.map((parrafo) => <p>{parrafo}</p>)}
       </div>
@@ -98,38 +109,51 @@ const btnSecundario =
   </section>
 
   <!-- ============ GARAJE (intereses) ============ -->
-  <section id="garaje" class="scroll-mt-20 py-12">
+  <!-- En escritorio: tarjetas a la izquierda y la moto 3D se ensambla a la derecha -->
+  <section id="garaje" data-escena="garaje" data-escena-movil="#moto-movil" data-marcha-seccion class="flex min-h-screen scroll-mt-20 flex-col justify-center py-16">
     <SectionTitle numero="03" titulo="fuera_del_código" />
-    <p class="mt-6 max-w-2xl text-humo">Cuando no estoy programando, estoy en el garaje o en otra dimensión.</p>
-    <div class="mt-8 grid gap-4 sm:grid-cols-2">
-      {site.intereses.map((item, i) => (
-        <div data-tilt data-reveal class="flex gap-4 rounded-xl border border-borde bg-chasis p-5 transition-colors hover:border-portal/50">
-          <!-- Alterna verde y naranja según la posición (par/impar) -->
-          <div class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-asfalto ${i % 2 === 0 ? "text-motor" : "text-portal"}`}>
-            <Icon name={item.icono as "moto"} />
-          </div>
-          <div>
-            <h3 class="font-semibold text-white">{item.titulo}</h3>
-            <p class="mt-1 text-sm text-humo">{item.texto}</p>
-          </div>
+    <div class="mt-8 grid gap-8 lg:grid-cols-2">
+      <div>
+        <p data-reveal class="max-w-md text-humo">
+          Cuando no estoy programando, estoy en el garaje o en otra dimensión.
+          <span class="font-mono text-motor">// mira cómo se arma la moto →</span>
+        </p>
+        <!-- Solo móvil/tablet: hueco donde la cámara enfoca la moto -->
+        <div id="moto-movil" aria-hidden="true" class="h-[300px] lg:hidden"></div>
+        <div class="mt-6 grid gap-4">
+          {site.intereses.map((item, i) => (
+            <div data-tilt data-reveal class={`relative flex gap-4 p-5 transition-colors hover:border-portal/50 ${panel}`}>
+              <span class="brillo"></span>
+              <!-- Alterna verde y naranja según la posición (par/impar) -->
+              <div class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-asfalto ${i % 2 === 0 ? "text-motor" : "text-portal"}`}>
+                <Icon name={item.icono as "moto"} />
+              </div>
+              <div>
+                <h3 class="font-semibold text-white">{item.titulo}</h3>
+                <p class="mt-1 text-sm text-humo">{item.texto}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+      <!-- Hueco donde se ve la moto en escritorio -->
+      <div aria-hidden="true" class="hidden lg:block"></div>
     </div>
   </section>
 
   <!-- ============ CONTACTO ============ -->
-  <section id="contacto" class="scroll-mt-20 py-12">
+  <section id="contacto" data-escena="contacto" data-marcha-seccion class="flex min-h-[90vh] scroll-mt-20 flex-col justify-center py-16">
     <SectionTitle numero="04" titulo="contacto" />
-    <div data-reveal class="mt-8 rounded-xl border border-borde bg-chasis p-8 text-center sm:p-12">
+    <div data-reveal class={`mt-8 p-8 text-center sm:p-12 ${panel} bg-chasis/50`}>
       <p class="font-mono text-sm text-portal">$ ping {site.usuario}</p>
-      <h3 class="mt-4 text-3xl font-bold text-white sm:text-4xl">¿Arrancamos un proyecto?</h3>
+      <h3 class="mt-4 text-3xl font-bold text-white sm:text-5xl">¿Arrancamos un proyecto?</h3>
       <p class="mx-auto mt-4 max-w-xl text-humo">
         Si tienes una idea, una oferta o solo quieres hablar de código o de motos, escríbeme. Respondo rápido.
       </p>
       <div class="mt-8 flex flex-wrap justify-center gap-4">
-        <a href={`mailto:${site.email}`} class={btnPrimario}>enviar_email</a>
-        <a href={site.github} class={btnSecundario} target="_blank" rel="noopener">github</a>
-        <a href={site.linkedin} class={btnSecundario} target="_blank" rel="noopener">linkedin</a>
+        <a href={`mailto:${site.email}`} data-iman class={btnPrimario}>enviar_email</a>
+        <a href={site.github} data-iman class={btnSecundario} target="_blank" rel="noopener">github</a>
+        <a href={site.linkedin} data-iman class={btnSecundario} target="_blank" rel="noopener">linkedin</a>
       </div>
     </div>
   </section>

@@ -3,6 +3,7 @@
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import Hud from "../components/Hud.astro";
 import { site } from "../data/site";
 
 interface Props {
@@ -20,7 +21,6 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0a0f0c" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Fuentes: Inter (texto) y JetBrains Mono (estilo terminal) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -32,68 +32,29 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
     <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
   <body class="relative min-h-screen bg-asfalto font-sans text-texto antialiased">
-    <!--
-      Fondo decorativo: una rejilla sutil + un brillo verde arriba.
-      pointer-events-none: no bloquea clics. -z-10: queda detrás de todo.
-      aria-hidden: los lectores de pantalla lo ignoran.
-    -->
-    <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <!-- Fondo de respaldo (si no hay WebGL): rejilla sutil + brillo verde -->
+    <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-20 overflow-hidden">
       <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f2b2333_1px,transparent_1px),linear-gradient(to_bottom,#1f2b2333_1px,transparent_1px)] bg-[size:48px_48px]"></div>
       <div class="absolute -top-40 left-1/2 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-portal/10 blur-3xl"></div>
     </div>
+
+    <!-- La escena 3D de toda la página (la dibuja src/scripts/escena.ts) -->
+    <canvas data-escena-canvas aria-hidden="true" class="escena pointer-events-none fixed inset-0 -z-10 h-screen w-screen"></canvas>
+    <!-- Viñeta: oscurece los bordes para que el texto se lea mejor -->
+    <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-[5] bg-[radial-gradient(ellipse_at_center,transparent_40%,#0a0f0cb3_100%)]"></div>
+    <!-- Líneas de escaneo tipo monitor CRT -->
+    <div aria-hidden="true" class="scanlines pointer-events-none fixed inset-0 z-50"></div>
 
     <Header />
     <main class="mx-auto max-w-5xl px-4 sm:px-6">
       <slot />
     </main>
     <Footer />
+    <Hud />
 
     <script>
-      const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      // 1) APARICIÓN AL HACER SCROLL: IntersectionObserver avisa cuando un
-      //    elemento entra en pantalla; le ponemos la clase "visible" una sola vez.
-      const observador = new IntersectionObserver(
-        (entradas) => {
-          for (const e of entradas) {
-            if (e.isIntersecting) {
-              e.target.classList.add("visible");
-              observador.unobserve(e.target);
-            }
-          }
-        },
-        { threshold: 0.15 },
-      );
-      document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
-        // Retraso escalonado entre hermanos: las tarjetas aparecen una tras otra
-        const hermanos = el.parentElement ? [...el.parentElement.children] : [];
-        el.style.setProperty("--retraso", `${Math.min(hermanos.indexOf(el), 5) * 90}ms`);
-        observador.observe(el);
-      });
-
-      // 2) INCLINACIÓN 3D: solo con ratón (en móvil no hay "hover").
-      if (!sinMovimiento && window.matchMedia("(pointer: fine)").matches) {
-        document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((card) => {
-          card.addEventListener("pointermove", (e) => {
-            const r = card.getBoundingClientRect();
-            const x = (e.clientX - r.left) / r.width - 0.5; // -0.5 a 0.5
-            const y = (e.clientY - r.top) / r.height - 0.5;
-            card.style.setProperty("--ry", `${x * 12}deg`);
-            card.style.setProperty("--rx", `${-y * 12}deg`);
-          });
-          card.addEventListener("pointerleave", () => {
-            card.style.setProperty("--rx", "0deg");
-            card.style.setProperty("--ry", "0deg");
-          });
-        });
-      }
-
-      // 3) Un guiño para quien abra la consola del navegador (F12)
-      console.log(
-        "%c> acceso concedido",
-        "color:#4ade80;font-family:monospace;font-size:14px",
-        "\n¿Curioseando el código? Me caes bien. Escríbeme. — Miller",
-      );
+      import { iniciarEfectos } from "../scripts/efectos";
+      iniciarEfectos();
     </script>
   </body>
 </html>

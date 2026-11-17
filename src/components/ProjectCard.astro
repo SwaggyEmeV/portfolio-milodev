@@ -15,8 +15,9 @@ const { slug, titulo, resumen, tecnologias, destacado = false } = Astro.props;
   href={`/proyectos/${slug}/`}
   data-tilt
   data-reveal
-  class="group relative flex flex-col rounded-xl border border-borde bg-chasis p-6 transition-[border-color,box-shadow] duration-300 hover:border-portal/60 hover:shadow-[0_0_30px_-10px] hover:shadow-portal/40"
+  class="group relative flex flex-col rounded-xl border border-borde bg-chasis/75 p-6 backdrop-blur-md transition-[border-color,box-shadow] duration-300 hover:border-portal/60 hover:shadow-[0_0_30px_-10px] hover:shadow-portal/40"
 >
+  <span class="brillo"></span>
   <div class="flex items-center justify-between font-mono text-xs text-humo">
     <span>./{slug}</span>
     {destacado && <span class="rounded border border-motor/40 px-2 py-0.5 text-motor">destacado</span>}

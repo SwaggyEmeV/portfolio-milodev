@@ -76,6 +76,125 @@ html {
   transform: translateZ(20px);
 }
 
+/* Brillo que sigue al ratón dentro de las tarjetas (--mx/--my los pone el script) */
+.brillo {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), #4ade8022, transparent 45%);
+}
+[data-tilt]:hover .brillo { opacity: 1; }
+
+/* ---------------- ESCENA 3D ---------------- */
+.escena { opacity: 0; transition: opacity 1.2s ease; }
+.escena.lista { opacity: 1; }
+
+/* Líneas de escaneo de monitor antiguo: casi imperceptibles, dan textura */
+.scanlines {
+  background: repeating-linear-gradient(to bottom, transparent 0 3px, #0000000c 3px 4px);
+}
+/* En pantallas pequeñas o de alta densidad generan "moiré": las quitamos */
+@media (max-width: 767px), (min-resolution: 2dppx) {
+  .scanlines { display: none; }
+}
+
+/* ---------------- TÍTULO CON GLITCH ----------------
+   Dos copias del texto (::before y ::after, leídas de data-text) desplazadas
+   en verde y naranja; clip-path recorta franjas distintas en cada salto. */
+.glitch { position: relative; }
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.glitch::before { color: var(--color-portal); animation: glitch-a 4s infinite steps(1); }
+.glitch::after  { color: var(--color-motor);  animation: glitch-b 4s infinite steps(1); }
+.glitch:hover::before, .glitch:hover::after { animation-duration: 0.6s; }
+@keyframes glitch-a {
+  0%, 88%, 100% { opacity: 0; translate: 0; }
+  89% { opacity: 0.8; translate: -4px 1px; clip-path: inset(10% 0 60% 0); }
+  92% { opacity: 0.8; translate: 3px -1px; clip-path: inset(55% 0 20% 0); }
+  95% { opacity: 0.8; translate: -2px 0; clip-path: inset(30% 0 45% 0); }
+}
+@keyframes glitch-b {
+  0%, 88%, 100% { opacity: 0; translate: 0; }
+  90% { opacity: 0.8; translate: 4px -1px; clip-path: inset(65% 0 5% 0); }
+  93% { opacity: 0.8; translate: -3px 1px; clip-path: inset(5% 0 70% 0); }
+  96% { opacity: 0.8; translate: 2px 0; clip-path: inset(40% 0 35% 0); }
+}
+
+/* ---------------- INTRO DE ARRANQUE ---------------- */
+.intro-activa { overflow: hidden; }
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--color-asfalto);
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+.intro-caja { width: min(560px, 100%); }
+.intro pre {
+  min-height: 9.5em;
+  white-space: pre-wrap;
+  color: var(--color-portal);
+  font-size: clamp(12px, 2.6vw, 15px);
+  line-height: 1.6;
+  text-shadow: 0 0 8px #4ade8099;
+}
+.intro pre::after { content: "█"; animation: var(--animate-parpadeo); }
+.intro-saltar { margin-top: 1.5rem; color: var(--color-humo); font-size: 12px; }
+/* Al salir: se abre como una compuerta de garaje (hacia arriba) con un destello */
+.intro-sale { animation: compuerta 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards; }
+@keyframes compuerta {
+  0%   { clip-path: inset(0 0 0 0); filter: brightness(1); }
+  25%  { filter: brightness(2.2); }
+  100% { clip-path: inset(0 0 100% 0); filter: brightness(1); }
+}
+
+/* ---------------- CURSOR PROPIO ---------------- */
+.cursor-propio, .cursor-propio * { cursor: none !important; }
+.cursor-punto, .cursor-aro {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  border-radius: 9999px;
+}
+.cursor-punto {
+  width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  background: var(--color-portal);
+  box-shadow: 0 0 10px var(--color-portal);
+}
+.cursor-aro {
+  width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  border: 1.5px solid #4ade8099;
+  transition: width 0.25s, height 0.25s, margin 0.25s, border-color 0.25s, background-color 0.25s;
+}
+.cursor-aro.cursor-activo {
+  width: 58px; height: 58px; margin: -29px 0 0 -29px;
+  border-color: var(--color-motor);
+  background: #fb923c14;
+}
+.cursor-aro.cursor-clic { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
+
+/* ---------------- TACÓMETRO ---------------- */
+.tacometro .aguja { transform-box: view-box; transform-origin: 60px 60px; rotate: -120deg; transition: rotate 0.08s linear; }
+.tacometro .arco-rpm { filter: drop-shadow(0 0 3px var(--color-portal)); }
+.tacometro .marcha { transform-box: fill-box; transform-origin: center; }
+.tacometro.zona-roja .arco-rpm { stroke: #ef4444; filter: drop-shadow(0 0 4px #ef4444); }
+.tacometro.zona-roja { border-color: #ef444466; }
+
 /* Respeta a quien pide menos movimiento en su sistema */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
