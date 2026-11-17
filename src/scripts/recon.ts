@@ -1,6 +1,7 @@
 // El home por dentro: intro, expedientes, tráfico de red y consola.
 // El canvas con los nodos vive en mapa.ts; los datos llegan como JSON desde Recon.astro.
 import { crearMapa, type NodoDef } from "./mapa";
+import { crearCRT, corregirPuntero } from "./crt";
 import { descifrar, prefiereMenosMovimiento } from "./scramble";
 
 type Tec = { nombre: string; puerto: number; capa: string; estado: string };
@@ -89,8 +90,9 @@ function arrancar(raiz: HTMLElement, d: Datos) {
      MAPA
      ============================================================ */
   const zoomN = $("[data-zoom-n]");
+  const mapaCanvas = $<HTMLCanvasElement>("[data-mapa]");
   const mapa = crearMapa({
-    canvas: $<HTMLCanvasElement>("[data-mapa]"),
+    canvas: mapaCanvas,
     nodos,
     enlaces,
     reducido,
@@ -101,6 +103,31 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       if (id) raiz.querySelector(`.obj[data-host="${id}"]`)?.classList.add("hover");
     },
   });
+
+  /* ============================================================
+     PANTALLA CRT (filtro WebGL sobre el mapa + capa CSS)
+     ============================================================ */
+  const crtGl = crearCRT(mapaCanvas, $<HTMLCanvasElement>("[data-crt]"), reducido);
+  const crtBtn = $("[data-crt-toggle]");
+  const crtEstado = $("[data-crt-estado]");
+  let crtOn = false;
+
+  function crt(b: boolean, avisar = true) {
+    if (b === crtOn) return;
+    crtOn = b;
+    const gl = crtGl.activar(b);
+    raiz.classList.toggle("crt-on", b);
+    mapa.setDeformador(b && gl ? corregirPuntero : null);
+    crtBtn.setAttribute("aria-pressed", String(b));
+    crtEstado.textContent = b ? "on" : "off";
+    if (b && !reducido) {
+      raiz.classList.add("crt-enciende");
+      setTimeout(() => raiz.classList.remove("crt-enciende"), 700);
+    }
+    try { localStorage.setItem("milodev-crt", b ? "1" : "0"); } catch {}
+    if (avisar) sniff("SYS", b ? (gl ? "pantalla CRT encendida (WebGL)" : "pantalla CRT encendida (solo CSS: sin WebGL)") : "pantalla CRT apagada", b && !gl ? "alerta" : "");
+  }
+  crtBtn.addEventListener("click", () => crt(!crtOn));
 
   /* ============================================================
      EXPEDIENTES
@@ -226,6 +253,9 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     dSsh.textContent = `ssh ${d.usuario}@${v.ip}`;
     dossier.dataset.abierto = "true";
     dossier.removeAttribute("inert");
+    // en escritorio el expediente tapa la derecha: la red se centra en lo que queda visible
+    const escritorio = matchMedia("(min-width: 860px)").matches;
+    mapa.setMargenDer(escritorio ? Math.min(540, $(".stage").clientWidth * 0.45) : 0);
     dCuerpo.innerHTML = "";
     dCuerpo.scrollTop = 0;
 
@@ -268,6 +298,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     dossier.dataset.abierto = "false";
     dossier.setAttribute("inert", "");
     mapa.setActivo(null);
+    mapa.setMargenDer(0);
     marcarActivo(null);
     history.replaceState(null, "", location.pathname);
     disparador?.isConnected && disparador.focus({ preventScroll: true });
@@ -404,6 +435,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
         f("scan", "lista los hosts de la red"),
         f("connect <host>", "abre su expediente (nombre, ip o número)"),
         f("whoami", "quién soy"),
+        f("crt [on|off]", "pantalla de tubo catódico (tecla C)"),
         f("stack", "escaneo de puertos (tecnologías)"),
         f("contacto", "canales para escribirme"),
         f("sudo hire miller", "contratar (probablemente funcione)"),
@@ -430,6 +462,12 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     },
     stack() { abrir("stack"); },
     contacto() { abrir("contacto"); },
+    crt(a) {
+      const q = (a[0] ?? "").toLowerCase();
+      const b = q === "on" ? true : q === "off" ? false : !crtOn;
+      crt(b, false);
+      ln(b ? `<span class="c-ok">CRT on</span> <span class="c-dim">${crtGl.soportado ? "shader WebGL: curvatura, bloom, aberración cromática, scanlines" : "WebGL no disponible: solo la capa CSS"}</span>` : `<span class="c-dim">CRT off</span>`);
+    },
     ls() { comandos.scan([]); },
     cat(a) {
       const q = norm(a.join(" "));
@@ -524,6 +562,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       const a = b.dataset.zoom;
       if (a === "in") mapa.zoom(1.3);
       else if (a === "out") mapa.zoom(1 / 1.3);
+      else if (a === "rot") b.setAttribute("aria-pressed", String(mapa.autoGirar()));
       else mapa.reiniciarVista();
     }),
   );
@@ -544,6 +583,8 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       if (e.key === "+" || e.key === "=") mapa.zoom(1.3);
       else if (e.key === "-" || e.key === "_") mapa.zoom(1 / 1.3);
       else if (e.key === "0") mapa.reiniciarVista();
+      else if (e.key === "r" || e.key === "R") $<HTMLElement>('[data-zoom="rot"]').click();
+      else if (e.key === "c" || e.key === "C") crt(!crtOn);
     }
     // código Konami
     konami = e.key === KONAMI[konami] ? konami + 1 : e.key === KONAMI[0] ? 1 : 0;
@@ -645,6 +686,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       try { sessionStorage.setItem("milodev-intro", "1"); } catch {}
     }
     mapa.iniciar();
+    try { if (localStorage.getItem("milodev-crt") === "1") crt(true, false); } catch {}
     sniff("SYS", `sesión iniciada · ${d.usuario}@${d.host}`, "ok");
     sniff("SYS", `${d.hosts.length} hosts detectados en 10.13.37.0/24`);
     for (let i = 0; i < 6; i++) ruidoDeFondo();

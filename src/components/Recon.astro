@@ -61,6 +61,9 @@ const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
     <span class="flex-1"></span>
     <span class="top-dato hidden md:inline">sesión <b data-sesion>0x0000</b></span>
     <span class="top-dato hidden sm:inline"><b data-reloj>00:00:00</b></span>
+    <button type="button" class="crt-btn" data-crt-toggle aria-pressed="false" title="Pantalla CRT (tecla C)">
+      CRT <b data-crt-estado>off</b>
+    </button>
     <span class="top-prog" title="Hosts comprometidos">
       <span class="segs" aria-hidden="true">{hosts.map(() => <i></i>)}</span>
       <span class="sr-only">hosts comprometidos</span>
@@ -94,18 +97,21 @@ const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
 
     <section class="stage" aria-label="Mapa de red interactivo">
       <canvas data-mapa class="mapa" aria-hidden="true"></canvas>
+      <!-- Filtro CRT (WebGL): se muestra encima del mapa solo cuando está activo -->
+      <canvas data-crt class="crt-gl" aria-hidden="true"></canvas>
 
       <div class="leyenda" aria-hidden="true">
         <span><i class="ley ley-rojo"></i> sin explorar</span>
         <span><i class="ley ley-agua"></i> comprometido</span>
-        <span class="ley-ayuda">pulsa un nodo · arrastra el fondo · rueda para zoom</span>
+        <span class="ley-ayuda">pulsa un nodo · arrastra para girar · rueda para zoom</span>
       </div>
 
-      <div class="zoom" role="group" aria-label="Zoom del mapa">
+      <div class="zoom" role="group" aria-label="Cámara del mapa">
         <button type="button" data-zoom="in" aria-label="Acercar" title="Acercar (+)">+</button>
         <output class="zoom-n" data-zoom-n aria-live="off">×1.0</output>
         <button type="button" data-zoom="out" aria-label="Alejar" title="Alejar (−)">−</button>
         <button type="button" data-zoom="reset" aria-label="Restablecer vista" title="Restablecer (0)">⌖</button>
+        <button type="button" data-zoom="rot" class="rot" aria-pressed="true" aria-label="Giro automático" title="Giro automático (R)">↻</button>
       </div>
 
       <button type="button" class="abrir-consola" data-consola-abrir aria-label="Abrir la consola">
@@ -153,6 +159,12 @@ const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
       <p class="intro-acceso" data-i-acceso hidden>ACCESS GRANTED</p>
     </div>
     <button type="button" class="intro-saltar" data-i-saltar>saltar ↵</button>
+  </div>
+
+  <!-- ===== CAPA CRT: líneas de escaneo, viñeta y parpadeo sobre toda la pantalla ===== -->
+  <div class="crt-capa" aria-hidden="true">
+    <i class="crt-barra"></i>
+    <i class="crt-flash"></i>
   </div>
 </div>
 

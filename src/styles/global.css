@@ -489,6 +489,60 @@ html:not(.js) .recon { display: none; }
   75% { transform: translate(5px, 0); }
 }
 
+/* ---------- cámara 3D: giro automático ---------- */
+.zoom .rot[aria-pressed="true"] { color: var(--color-agua); }
+.zoom .rot[aria-pressed="false"] { color: var(--color-niebla); }
+
+/* ---------- pantalla CRT (botón CRT, tecla C o comando crt) ---------- */
+.crt-btn {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 10px;
+  border: 1px solid var(--color-borde); background: transparent; color: var(--color-niebla);
+  font: 500 11px/1 var(--font-mono); letter-spacing: 0.08em; cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.crt-btn b { font-weight: 700; color: var(--color-alerta); }
+.crt-btn:hover { color: var(--color-luz); border-color: var(--color-agua); }
+.crt-btn[aria-pressed="true"] { color: var(--color-agua); border-color: var(--color-agua); background: color-mix(in srgb, var(--color-agua) 10%, transparent); }
+.crt-btn[aria-pressed="true"] b { color: var(--color-agua); }
+
+/* el canvas WebGL va encima del mapa y solo se ve con el CRT encendido */
+.crt-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
+.crt-on .crt-gl { display: block; }
+
+/* capa sobre toda la pantalla: líneas de escaneo, viñeta, banda que rueda y encendido */
+.crt-capa { position: absolute; inset: 0; z-index: 120; display: none; overflow: hidden; pointer-events: none; border-radius: 18px; }
+.crt-on .crt-capa { display: block; }
+.crt-on { border-radius: 18px; }
+.crt-capa::before {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.22) 2px 3px);
+}
+.crt-capa::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(ellipse at center, transparent 50%, rgb(0 0 0 / 0.5) 100%);
+  box-shadow: inset 0 0 80px rgb(0 0 0 / 0.75), inset 0 0 0 1px rgb(110 231 183 / 0.12);
+  animation: crt-parpadeo 0.18s steps(2, end) infinite;
+}
+@keyframes crt-parpadeo { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.94; } }
+.crt-barra {
+  position: absolute; left: 0; right: 0; top: -26%; height: 22%;
+  background: linear-gradient(to bottom, transparent, rgb(110 231 183 / 0.06), transparent);
+  animation: crt-rueda 7.5s linear infinite;
+}
+@keyframes crt-rueda { to { top: 108%; } }
+.crt-flash { position: absolute; inset: 0; background: rgb(214 240 228 / 0.9); opacity: 0; }
+.crt-enciende .crt-flash { animation: crt-enciende 0.62s ease-out; }
+@keyframes crt-enciende {
+  0% { opacity: 1; transform: scale(1, 0.004); }
+  40% { opacity: 1; transform: scale(1, 0.004); }
+  72% { opacity: 0.85; transform: scale(1, 1); }
+  100% { opacity: 0; transform: scale(1, 1); }
+}
+/* el fósforo sangra un poco: halo verde y franjas rojo/cian en el texto (especificidad 0: cede ante cualquier otro text-shadow) */
+:where(.crt-on) :is(.top, .main, .barra) {
+  text-shadow: 0.7px 0 rgb(255 59 92 / 0.4), -0.7px 0 rgb(61 224 255 / 0.4), 0 0 7px rgb(110 231 183 / 0.22);
+}
+
 /* ---------- accesibilidad: menos movimiento ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
