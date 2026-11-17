@@ -1,7 +1,8 @@
-// Datos personales en un solo sitio: edítalos aquí y se actualizan en toda la web.
+// Datos personales en un solo sitio: edítalos aquí y se actualizan en toda la web
+// (la terminal del home, la ficha de neofetch, el contacto y las páginas de proyecto).
 export const site = {
   nombre: "Miller Ochoa",
-  usuario: "miller", // aparece en el "prompt" de la terminal del hero
+  usuario: "miller", // aparece en el prompt de la terminal: miller@garaje:~$
   rol: "Desarrollador Web",
   frase:
     "Escribo código como reparo motos: desarmo el problema, entiendo cada pieza y no paro hasta que todo arranca a la primera.",
@@ -13,28 +14,55 @@ export const site = {
   email: "tu-correo@ejemplo.com",
   github: "https://github.com/tu-usuario",
   linkedin: "https://www.linkedin.com/in/tu-usuario",
-  tecnologias: ["PHP", "MySQL", "JavaScript", "HTML", "CSS", "Git", "Linux", "Astro", "Tailwind CSS"],
-  // Sección "Fuera del código"
+  // Ficha que imprime el comando `neofetch` junto a la "M" en ASCII
+  ficha: [
+    ["Rol", "desarrollador web (backend)"],
+    ["Stack", "PHP · MySQL · Linux"],
+    ["Ahora", "Astro · Tailwind CSS"],
+    ["Fuera", "motos · mecánica · Mr. Robot"],
+  ] as [string, string][],
+  // Comando `cat stack.txt`: tecnología y la capa en la que la uso
+  tecnologias: [
+    { nombre: "PHP", capa: "backend" },
+    { nombre: "MySQL", capa: "datos" },
+    { nombre: "Linux", capa: "servidor" },
+    { nombre: "Git", capa: "flujo de trabajo" },
+    { nombre: "JavaScript", capa: "cliente" },
+    { nombre: "HTML · CSS", capa: "interfaz" },
+    { nombre: "Astro", capa: "aprendiendo" },
+    { nombre: "Tailwind CSS", capa: "aprendiendo" },
+  ],
+  // Carpeta `garaje/`: un archivo .txt por interés
   intereses: [
     {
-      icono: "moto",
+      archivo: "motos.txt",
       titulo: "Motos",
       texto: "Nada me despeja tanto como rodar. Muchas soluciones se me ocurren con el casco puesto.",
     },
     {
-      icono: "llave",
+      archivo: "mecanica.txt",
       titulo: "Mecánica",
       texto: "Desarmar, diagnosticar y volver a montar. Debuggear un carburador se parece mucho a debuggear código.",
     },
     {
-      icono: "portal",
+      archivo: "rick-and-morty.txt",
       titulo: "Rick and Morty",
       texto: "Ciencia, caos y multiversos. Mi serie para desconectar, y la culpa de mi verde favorito.",
     },
     {
-      icono: "terminal",
+      archivo: "mr-robot.txt",
       titulo: "Mr. Robot",
       texto: "La serie que mejor retrata la cultura hacker y la seguridad informática. Me hizo mirar la terminal con otros ojos.",
     },
   ],
 };
+
+// Barra inferior estilo tmux. `cmd` es lo que ejecuta la terminal al pulsarla;
+// `href` es a dónde lleva desde las demás páginas (el home lee el #hash y lo ejecuta).
+export const tabs = [
+  { etiqueta: "0:home", cmd: "neofetch", href: "/" },
+  { etiqueta: "1:proyectos", cmd: "ls ~/proyectos", href: "/#proyectos" },
+  { etiqueta: "2:sobre_mi", cmd: "cat ~/sobre_mi.md", href: "/#sobre-mi" },
+  { etiqueta: "3:garaje", cmd: "ls ~/garaje", href: "/#garaje" },
+  { etiqueta: "4:contacto", cmd: "contacto", href: "/#contacto" },
+];

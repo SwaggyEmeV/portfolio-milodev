@@ -1,0 +1,29 @@
+---
+// Barra inferior estilo tmux, también es la navegación del sitio.
+//  - interactiva (home): los botones ejecutan un comando en la terminal.
+//  - no interactiva (otras páginas): son enlaces que vuelven al home.
+import { site, tabs } from "../data/site";
+
+interface Props {
+  interactiva?: boolean;
+  activa?: number; // índice de la pestaña marcada
+}
+const { interactiva = false, activa = 0 } = Astro.props;
+---
+
+<nav aria-label="Principal" class="flex shrink-0 items-stretch overflow-x-auto bg-agua text-[13px] text-asfalto">
+  <span class="flex min-h-11 shrink-0 items-center bg-asfalto px-4 font-semibold text-agua">[{site.usuario}]</span>
+  {tabs.map((t, i) =>
+    interactiva ? (
+      <button type="button" class="tab" data-cmd={t.cmd} data-tab={i} aria-current={i === activa ? "true" : "false"}>
+        {t.etiqueta}
+      </button>
+    ) : (
+      <a href={t.href} class="tab" data-tab={i} aria-current={i === activa ? "page" : undefined}>
+        {t.etiqueta}
+      </a>
+    ),
+  )}
+  <span class="flex-1"></span>
+  <span class="hidden min-h-11 items-center px-4 lg:flex">{site.usuario}@garaje · tty1 · utf-8</span>
+</nav>

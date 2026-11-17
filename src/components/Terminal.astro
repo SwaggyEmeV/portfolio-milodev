@@ -1,0 +1,178 @@
+---
+// El home es una terminal. Este componente pinta el marco (paneles, explorador,
+// chips, barra tmux) y le pasa los datos al script (src/scripts/terminal.ts),
+// que es quien ejecuta los comandos y escribe la salida.
+import type { CollectionEntry } from "astro:content";
+import Barra from "./Barra.astro";
+import { site, tabs } from "../data/site";
+
+interface Props {
+  proyectos: CollectionEntry<"proyectos">[];
+}
+const { proyectos } = Astro.props;
+
+// Datos que necesita la terminal en el navegador (se incrustan como JSON)
+const datos = {
+  usuario: site.usuario,
+  nombre: site.nombre,
+  rol: site.rol,
+  frase: site.frase,
+  email: site.email,
+  github: site.github,
+  linkedin: site.linkedin,
+  sobreMi: site.sobreMi,
+  ficha: site.ficha,
+  tecnologias: site.tecnologias,
+  intereses: site.intereses,
+  tabs,
+  proyectos: proyectos.map((p) => ({
+    slug: p.id,
+    titulo: p.data.titulo,
+    resumen: p.data.resumen,
+    tecnologias: p.data.tecnologias,
+    destacado: p.data.destacado,
+    demo: p.data.demo,
+    repo: p.data.repo,
+    cuerpo: p.body ?? "",
+  })),
+};
+// "<" escapado para que ningún texto pueda cerrar la etiqueta <script>
+const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
+
+// Árbol del explorador: cada nodo ejecuta un comando al pulsarlo
+type Nodo = { etiqueta: string; cmd: string; dir?: boolean };
+const rama = (i: number, total: number) => (i === total - 1 ? "└" : "├");
+const arbol: Nodo[] = [
+  { etiqueta: "├── proyectos/", cmd: "cd ~/proyectos", dir: true },
+  ...proyectos.map((p, i) => ({
+    etiqueta: `│   ${rama(i, proyectos.length)}── ${p.id}.md`,
+    cmd: `cat ~/proyectos/${p.id}.md`,
+  })),
+  { etiqueta: "├── garaje/", cmd: "cd ~/garaje", dir: true },
+  ...site.intereses.map((it, i) => ({
+    etiqueta: `│   ${rama(i, site.intereses.length)}── ${it.archivo}`,
+    cmd: `cat ~/garaje/${it.archivo}`,
+  })),
+  { etiqueta: "├── sobre_mi.md", cmd: "cat ~/sobre_mi.md" },
+  { etiqueta: "├── stack.txt", cmd: "cat ~/stack.txt" },
+  { etiqueta: "└── contacto.sh", cmd: "cat ~/contacto.sh" },
+];
+
+const atajos = ["neofetch", "ls ~/proyectos", "cat ~/sobre_mi.md", "contacto", "rev"];
+---
+
+<div class="flex h-dvh min-h-[560px] flex-col overflow-hidden bg-asfalto font-mono text-sm text-hueso">
+  <h1 class="sr-only">{site.nombre} · {site.rol}</h1>
+
+  <div class="flex min-h-0 flex-1 gap-3 px-3 pt-5 pb-3 sm:px-4">
+    <!-- ===== EXPLORADOR ===== -->
+    <aside class="panel hidden w-64 shrink-0 min-[900px]:flex" aria-label="Explorador de archivos">
+      <span class="ttl">explorer</span>
+      <div class="min-h-0 flex-1 overflow-y-auto px-2 pt-6 pb-3">
+        <p class="mx-2 mb-2.5 text-xs text-humo">~/{site.usuario}</p>
+        {arbol.map((n) => (
+          <button type="button" class:list={["run", n.dir && "run-dir"]} data-cmd={n.cmd}>{n.etiqueta}</button>
+        ))}
+        <p class="mx-2 mt-4 text-xs leading-relaxed text-humo">
+          clic en carpeta = cd<br />clic en archivo = cat
+        </p>
+      </div>
+    </aside>
+
+    <!-- ===== TERMINAL ===== -->
+    <section class="panel min-w-0 flex-1" data-t-panel aria-label="Terminal">
+      <span class="ttl">bash — {site.usuario}@garaje</span>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-6 pb-2" data-t-scroll role="log" aria-live="polite" aria-label="Salida de la terminal" tabindex="0">
+        <div data-t-salida>
+          <noscript>
+            <div class="space-y-3 pb-4">
+              <p class="c-acc"># {site.nombre} · {site.rol}</p>
+              <p>{site.frase}</p>
+              <p class="c-acc">## proyectos</p>
+              <ul class="space-y-1">
+                {proyectos.map((p) => (
+                  <li>
+                    <a class="enlace c-acc" href={`/proyectos/${p.id}`}>{p.data.titulo}</a>
+                    <span class="c-dim"> — {p.data.resumen}</span>
+                  </li>
+                ))}
+              </ul>
+              <p class="c-acc">## sobre mí</p>
+              {site.sobreMi.map((t) => <p>{t}</p>)}
+              <p class="c-acc">## contacto</p>
+              <p>
+                <a class="enlace c-acc" href={`mailto:${site.email}`}>{site.email}</a> ·
+                <a class="enlace c-acc" href={site.github}>github</a> ·
+                <a class="enlace c-acc" href={site.linkedin}>linkedin</a>
+              </p>
+              <p class="c-dim">// activa JavaScript para usar la terminal interactiva</p>
+            </div>
+          </noscript>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 border-t border-borde px-5 py-2">
+        <span class="text-xs text-humo">prueba:</span>
+        {atajos.map((c) => <button type="button" class="chip" data-cmd={c}>{c}</button>)}
+      </div>
+
+      <label class="prompt-row flex items-center gap-2.5 border-t border-borde px-5">
+        <span class="whitespace-nowrap text-agua" data-t-prompt>{site.usuario}@garaje:~$</span>
+        <input
+          class="term-input"
+          type="text"
+          data-t-input
+          aria-label="Línea de comandos"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="escribe help…"
+        />
+      </label>
+    </section>
+
+    <!-- ===== SISTEMA ===== -->
+    <aside class="panel hidden w-64 shrink-0 min-[1200px]:flex" aria-label="Estado del sistema">
+      <span class="ttl">sistema</span>
+      <div class="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto px-4.5 pt-6 pb-3.5">
+        <div>
+          <p class="lbl">rpm</p>
+          <div class="h-2.5 bg-borde"><div class="barra-rpm" data-t-rpm-barra></div></div>
+          <p class="mt-2 text-[13px] text-agua" data-t-rpm-texto>1100 rpm</p>
+        </div>
+
+        <div>
+          <p class="lbl">marcha</p>
+          <div class="flex items-end gap-3.5">
+            <span class="font-display text-[112px] leading-[0.8] font-black text-agua" data-t-marcha>N</span>
+            <span class="pb-1 text-[13px] text-humo" data-t-marcha-nombre>home</span>
+          </div>
+        </div>
+
+        <div>
+          <p class="lbl">servicios</p>
+          <div class="text-[13px] leading-[1.9]">
+            <div>● nginx <span class="text-humo">· active</span></div>
+            <div>● mysql <span class="text-humo">· active</span></div>
+            <div>● php-fpm <span class="text-humo">· active</span></div>
+            <div><span class="text-motor">●</span> café <span class="text-humo">· bajo</span></div>
+          </div>
+        </div>
+
+        <div>
+          <p class="lbl">historial · <span data-t-cuenta>0</span></p>
+          <div class="text-[13px] leading-[1.8] text-humo" data-t-historial>—</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <Barra interactiva activa={0} />
+</div>
+
+<script type="application/json" id="datos-terminal" set:html={datosJson} />
+
+<script>
+  import "../scripts/terminal";
+</script>

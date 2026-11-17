@@ -2,202 +2,155 @@
 @import "tailwindcss";
 
 /*
-  PALETA "GARAJE NOCTURNO"
+  PALETA "GARAJE NOCTURNO v2"
   Cada variable --color-X crea clases: bg-X, text-X, border-X...
-  Cambia un valor aquí y cambia en toda la web.
+  Un solo acento (agua marina) y el naranja de motor solo para alertas.
 */
 @theme {
-  /* Fondos: negro asfalto con un toque verde, y superficies algo más claras */
-  --color-asfalto: #0a0f0c;   /* fondo principal */
-  --color-chasis: #111813;    /* tarjetas y bloques */
-  --color-borde: #1f2b23;     /* líneas y bordes */
-
-  /* Texto */
-  --color-texto: #d4e0d7;     /* texto normal */
-  --color-humo: #8a9b90;      /* texto secundario */
-
-  /* Acentos */
-  --color-portal: #4ade80;    /* verde terminal/portal: color principal */
-  --color-portal-dark: #22c55e;
-  --color-motor: #fb923c;     /* naranja motor: segundo acento, con moderación */
+  --color-asfalto: #0b0b0a;   /* fondo */
+  --color-hueso: #ebe8dd;     /* texto principal */
+  --color-humo: #8e8b80;      /* texto secundario */
+  --color-borde: #2a2924;     /* líneas y bordes */
+  --color-agua: #6ee7b7;      /* acento: agua marina */
+  --color-motor: #ff6a1a;     /* naranja motor: errores, zona roja, avisos */
 
   /* Tipografías (se cargan desde Google Fonts en Layout.astro) */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-
-  /* Animación propia: crea la clase animate-parpadeo */
-  --animate-parpadeo: parpadeo 1s steps(1) infinite;
-  @keyframes parpadeo {
-    50% { opacity: 0; }
-  }
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --font-display: "Big Shoulders Display", Impact, sans-serif;
 }
 
 html {
-  scroll-behavior: smooth;   /* desplazamiento suave al pulsar enlaces #seccion */
-  color-scheme: dark;        /* barras de scroll y formularios en oscuro */
+  color-scheme: dark; /* barras de scroll y formularios en oscuro */
 }
 
-/* Color de la selección de texto */
 ::selection {
-  background: var(--color-portal);
+  background: var(--color-agua);
   color: var(--color-asfalto);
 }
 
-/*
-  APARICIÓN AL HACER SCROLL
-  Solo si hay JavaScript (clase "js" en <html>): si el JS falla, todo se ve igual.
-  Usamos "translate" (no "transform") para no chocar con la inclinación 3D.
-*/
-.js [data-reveal] {
-  opacity: 0;
-  translate: 0 24px;
-  transition: opacity 0.7s ease, translate 0.7s ease;
-  transition-delay: var(--retraso, 0ms);
+/* Todo lo de abajo va en la capa "components": así las clases de utilidad de
+   Tailwind (hidden, flex-1, w-70...) siempre ganan a estas clases propias. */
+@layer components {
+/* ---------------- PANELES (estilo tmux) ---------------- */
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--color-borde);
 }
-.js [data-reveal].visible {
-  opacity: 1;
-  translate: 0 0;
-}
-
-/* INCLINACIÓN 3D: el script cambia --rx y --ry según la posición del ratón */
-[data-tilt] {
-  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-/* Al salir el ratón, vuelve a su sitio suavemente */
-[data-tilt]:not(:hover) {
-  transition: transform 0.5s ease, opacity 0.7s ease, translate 0.7s ease, border-color 0.3s;
-  /* un retraso por propiedad, en el mismo orden: solo la aparición espera */
-  transition-delay: 0ms, var(--retraso, 0ms), var(--retraso, 0ms), 0ms;
-}
-/* Los hijos "flotan" un poco por encima de la tarjeta: efecto de profundidad */
-[data-tilt] > * {
-  transform: translateZ(20px);
-}
-
-/* Brillo que sigue al ratón dentro de las tarjetas (--mx/--my los pone el script) */
-.brillo {
+/* Título sobre el borde del panel */
+.ttl {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), #4ade8022, transparent 45%);
-}
-[data-tilt]:hover .brillo { opacity: 1; }
-
-/* ---------------- ESCENA 3D ---------------- */
-.escena { opacity: 0; transition: opacity 1.2s ease; }
-.escena.lista { opacity: 1; }
-
-/* Líneas de escaneo de monitor antiguo: casi imperceptibles, dan textura */
-.scanlines {
-  background: repeating-linear-gradient(to bottom, transparent 0 3px, #0000000c 3px 4px);
-}
-/* En pantallas pequeñas o de alta densidad generan "moiré": las quitamos */
-@media (max-width: 767px), (min-resolution: 2dppx) {
-  .scanlines { display: none; }
-}
-
-/* ---------------- TÍTULO CON GLITCH ----------------
-   Dos copias del texto (::before y ::after, leídas de data-text) desplazadas
-   en verde y naranja; clip-path recorta franjas distintas en cada salto. */
-.glitch { position: relative; }
-.glitch::before,
-.glitch::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-}
-.glitch::before { color: var(--color-portal); animation: glitch-a 4s infinite steps(1); }
-.glitch::after  { color: var(--color-motor);  animation: glitch-b 4s infinite steps(1); }
-.glitch:hover::before, .glitch:hover::after { animation-duration: 0.6s; }
-@keyframes glitch-a {
-  0%, 88%, 100% { opacity: 0; translate: 0; }
-  89% { opacity: 0.8; translate: -4px 1px; clip-path: inset(10% 0 60% 0); }
-  92% { opacity: 0.8; translate: 3px -1px; clip-path: inset(55% 0 20% 0); }
-  95% { opacity: 0.8; translate: -2px 0; clip-path: inset(30% 0 45% 0); }
-}
-@keyframes glitch-b {
-  0%, 88%, 100% { opacity: 0; translate: 0; }
-  90% { opacity: 0.8; translate: 4px -1px; clip-path: inset(65% 0 5% 0); }
-  93% { opacity: 0.8; translate: -3px 1px; clip-path: inset(5% 0 70% 0); }
-  96% { opacity: 0.8; translate: 2px 0; clip-path: inset(40% 0 35% 0); }
-}
-
-/* ---------------- INTRO DE ARRANQUE ---------------- */
-.intro-activa { overflow: hidden; }
-.intro {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
+  top: -8px;
+  left: 14px;
+  padding: 0 8px;
   background: var(--color-asfalto);
-  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-humo);
+}
+.lbl {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-humo);
+}
+
+/* ---------------- EXPLORADOR, CHIPS Y BARRA ---------------- */
+.run {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 8px;
+  font-size: 13px;
+  text-align: left;
+  white-space: pre;
+  color: var(--color-hueso);
   cursor: pointer;
 }
-.intro-caja { width: min(560px, 100%); }
-.intro pre {
-  min-height: 9.5em;
+.run-dir { color: var(--color-agua); }
+.run:hover {
+  color: var(--color-agua);
+  background: color-mix(in srgb, var(--color-agua) 12%, transparent);
+}
+.chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-borde);
+  font-size: 13px;
+  color: var(--color-hueso);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--color-agua); color: var(--color-agua); }
+.tab {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: inherit;
+  cursor: pointer;
+}
+.tab:hover { filter: brightness(1.15); }
+.tab[aria-current="true"],
+.tab[aria-current="page"] {
+  background: var(--color-asfalto);
+  color: var(--color-agua);
+}
+.run:focus-visible,
+.chip:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--color-agua);
+  outline-offset: -2px;
+}
+
+/* ---------------- LÍNEA DE COMANDOS ---------------- */
+.term-input {
+  flex: 1 1 120px;
+  min-width: 0;
+  min-height: 44px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--color-hueso);
+  font: inherit;
+  caret-color: var(--color-agua);
+  caret-shape: block;
+}
+.term-input::placeholder { color: var(--color-humo); }
+.prompt-row:focus-within { box-shadow: inset 0 0 0 1px var(--color-agua); }
+
+/* ---------------- SALIDA DE LA TERMINAL ---------------- */
+.linea {
   white-space: pre-wrap;
-  color: var(--color-portal);
-  font-size: clamp(12px, 2.6vw, 15px);
+  word-break: break-word;
   line-height: 1.6;
-  text-shadow: 0 0 8px #4ade8099;
 }
-.intro pre::after { content: "█"; animation: var(--animate-parpadeo); }
-.intro-saltar { margin-top: 1.5rem; color: var(--color-humo); font-size: 12px; }
-/* Al salir: se abre como una compuerta de garaje (hacia arriba) con un destello */
-.intro-sale { animation: compuerta 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards; }
-@keyframes compuerta {
-  0%   { clip-path: inset(0 0 0 0); filter: brightness(1); }
-  25%  { filter: brightness(2.2); }
-  100% { clip-path: inset(0 0 100% 0); filter: brightness(1); }
-}
+.c-acc { color: var(--color-agua); }
+.c-bone { color: var(--color-hueso); }
+.c-dim { color: var(--color-humo); }
+.c-warn { color: var(--color-motor); }
+.enlace { text-decoration: underline; text-underline-offset: 3px; }
+.enlace:hover { filter: brightness(1.25); }
 
-/* ---------------- CURSOR PROPIO ---------------- */
-.cursor-propio, .cursor-propio * { cursor: none !important; }
-.cursor-punto, .cursor-aro {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 90;
-  pointer-events: none;
-  border-radius: 9999px;
+/* ---------------- PANEL "SISTEMA" ---------------- */
+.barra-rpm {
+  height: 10px;
+  width: 0;
+  background: var(--color-agua);
+  transition: width 0.4s ease, background-color 0.3s;
 }
-.cursor-punto {
-  width: 6px; height: 6px; margin: -3px 0 0 -3px;
-  background: var(--color-portal);
-  box-shadow: 0 0 10px var(--color-portal);
+.barra-rpm.roja { background: var(--color-motor); }
 }
-.cursor-aro {
-  width: 34px; height: 34px; margin: -17px 0 0 -17px;
-  border: 1.5px solid #4ade8099;
-  transition: width 0.25s, height 0.25s, margin 0.25s, border-color 0.25s, background-color 0.25s;
-}
-.cursor-aro.cursor-activo {
-  width: 58px; height: 58px; margin: -29px 0 0 -29px;
-  border-color: var(--color-motor);
-  background: #fb923c14;
-}
-.cursor-aro.cursor-clic { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
-
-/* ---------------- TACÓMETRO ---------------- */
-.tacometro .aguja { transform-box: view-box; transform-origin: 60px 60px; rotate: -120deg; transition: rotate 0.08s linear; }
-.tacometro .arco-rpm { filter: drop-shadow(0 0 3px var(--color-portal)); }
-.tacometro .marcha { transform-box: fill-box; transform-origin: center; }
-.tacometro.zona-roja .arco-rpm { stroke: #ef4444; filter: drop-shadow(0 0 4px #ef4444); }
-.tacometro.zona-roja { border-color: #ef444466; }
 
 /* Respeta a quien pide menos movimiento en su sistema */
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-  .js [data-reveal] { opacity: 1; translate: none; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }
