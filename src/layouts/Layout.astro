@@ -28,6 +28,8 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
       rel="stylesheet"
     />
     <title>{fullTitle}</title>
+    <!-- is:inline = se ejecuta tal cual y al instante, antes de pintar la página -->
+    <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
   <body class="relative min-h-screen bg-asfalto font-sans text-texto antialiased">
     <!--
@@ -46,8 +48,47 @@ const fullTitle = title ? `${title} | ${site.nombre}` : `${site.nombre} | ${site
     </main>
     <Footer />
 
-    <!-- Un guiño para quien abra la consola del navegador (F12) -->
     <script>
+      const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // 1) APARICIÓN AL HACER SCROLL: IntersectionObserver avisa cuando un
+      //    elemento entra en pantalla; le ponemos la clase "visible" una sola vez.
+      const observador = new IntersectionObserver(
+        (entradas) => {
+          for (const e of entradas) {
+            if (e.isIntersecting) {
+              e.target.classList.add("visible");
+              observador.unobserve(e.target);
+            }
+          }
+        },
+        { threshold: 0.15 },
+      );
+      document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
+        // Retraso escalonado entre hermanos: las tarjetas aparecen una tras otra
+        const hermanos = el.parentElement ? [...el.parentElement.children] : [];
+        el.style.setProperty("--retraso", `${Math.min(hermanos.indexOf(el), 5) * 90}ms`);
+        observador.observe(el);
+      });
+
+      // 2) INCLINACIÓN 3D: solo con ratón (en móvil no hay "hover").
+      if (!sinMovimiento && window.matchMedia("(pointer: fine)").matches) {
+        document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((card) => {
+          card.addEventListener("pointermove", (e) => {
+            const r = card.getBoundingClientRect();
+            const x = (e.clientX - r.left) / r.width - 0.5; // -0.5 a 0.5
+            const y = (e.clientY - r.top) / r.height - 0.5;
+            card.style.setProperty("--ry", `${x * 12}deg`);
+            card.style.setProperty("--rx", `${-y * 12}deg`);
+          });
+          card.addEventListener("pointerleave", () => {
+            card.style.setProperty("--rx", "0deg");
+            card.style.setProperty("--ry", "0deg");
+          });
+        });
+      }
+
+      // 3) Un guiño para quien abra la consola del navegador (F12)
       console.log(
         "%c> acceso concedido",
         "color:#4ade80;font-family:monospace;font-size:14px",

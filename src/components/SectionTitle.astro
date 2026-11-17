@@ -7,7 +7,7 @@ interface Props {
 const { numero, titulo } = Astro.props;
 ---
 
-<h2 class="flex items-center gap-4 font-mono text-2xl font-bold text-white sm:text-3xl">
+<h2 data-reveal class="flex items-center gap-4 font-mono text-2xl font-bold text-white sm:text-3xl">
   <span><span class="text-portal">// {numero}.</span> {titulo}</span>
   <span aria-hidden="true" class="h-px flex-1 bg-borde"></span>
 </h2>

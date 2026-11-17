@@ -10,9 +10,12 @@ const { slug, titulo, resumen, tecnologias, destacado = false } = Astro.props;
 ---
 
 <!-- "group" deja que los hijos reaccionen al hover de la tarjeta (group-hover:) -->
+<!-- data-tilt: inclinación 3D al pasar el ratón (script en Layout.astro) -->
 <a
   href={`/proyectos/${slug}/`}
-  class="group relative flex flex-col rounded-xl border border-borde bg-chasis p-6 transition duration-300 hover:-translate-y-1 hover:border-portal/60 hover:shadow-[0_0_30px_-10px] hover:shadow-portal/40"
+  data-tilt
+  data-reveal
+  class="group relative flex flex-col rounded-xl border border-borde bg-chasis p-6 transition-[border-color,box-shadow] duration-300 hover:border-portal/60 hover:shadow-[0_0_30px_-10px] hover:shadow-portal/40"
 >
   <div class="flex items-center justify-between font-mono text-xs text-humo">
     <span>./{slug}</span>

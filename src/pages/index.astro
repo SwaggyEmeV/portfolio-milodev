@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import Icon from "../components/Icon.astro";
+import Hero3D from "../components/Hero3D.astro";
 import { getCollection } from "astro:content";
 import { site } from "../data/site";
 
@@ -21,7 +22,13 @@ const btnSecundario =
 
 <Layout>
   <!-- ============ HERO ============ -->
-  <section class="py-20 sm:py-32">
+  <!-- Rejilla: en escritorio (lg:) texto a la izquierda y escena 3D a la derecha -->
+  <section class="grid items-center gap-8 py-12 sm:py-20 lg:grid-cols-[1.1fr_1fr] lg:py-28">
+    <!-- order-first: en móvil la escena 3D sale primero; en escritorio vuelve a la derecha -->
+    <div class="order-first h-[300px] sm:h-[420px] lg:order-last lg:h-[560px]">
+      <Hero3D />
+    </div>
+    <div>
     <!-- Ventana de terminal -->
     <div class="max-w-2xl overflow-hidden rounded-xl border border-borde bg-chasis/80 shadow-2xl shadow-black/40">
       <div class="flex items-center gap-2 border-b border-borde px-4 py-3">
@@ -42,7 +49,7 @@ const btnSecundario =
       </div>
     </div>
 
-    <h1 class="mt-12 text-5xl font-bold tracking-tight text-white sm:text-7xl">
+    <h1 class="mt-12 text-5xl font-bold tracking-tight text-white sm:text-7xl lg:text-6xl">
       {site.nombre}<span class="text-portal">.</span>
     </h1>
     <p class="mt-4 font-mono text-lg text-portal sm:text-xl">&gt; {site.rol}</p>
@@ -50,6 +57,7 @@ const btnSecundario =
     <div class="mt-8 flex flex-wrap gap-4">
       <a href="#proyectos" class={btnPrimario}>./ver_proyectos</a>
       <a href="#contacto" class={btnSecundario}>contactar</a>
+    </div>
     </div>
   </section>
 
@@ -72,7 +80,7 @@ const btnSecundario =
   <!-- ============ SOBRE MÍ ============ -->
   <section id="sobre-mi" class="scroll-mt-20 py-12">
     <SectionTitle numero="02" titulo="sobre_mí" />
-    <div class="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr]">
+    <div data-reveal class="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr]">
       <div class="space-y-4 text-lg text-humo">
         {site.sobreMi.map((parrafo) => <p>{parrafo}</p>)}
       </div>
@@ -95,7 +103,7 @@ const btnSecundario =
     <p class="mt-6 max-w-2xl text-humo">Cuando no estoy programando, estoy en el garaje o en otra dimensión.</p>
     <div class="mt-8 grid gap-4 sm:grid-cols-2">
       {site.intereses.map((item, i) => (
-        <div class="flex gap-4 rounded-xl border border-borde bg-chasis p-5">
+        <div data-tilt data-reveal class="flex gap-4 rounded-xl border border-borde bg-chasis p-5 transition-colors hover:border-portal/50">
           <!-- Alterna verde y naranja según la posición (par/impar) -->
           <div class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-asfalto ${i % 2 === 0 ? "text-motor" : "text-portal"}`}>
             <Icon name={item.icono as "moto"} />
@@ -112,7 +120,7 @@ const btnSecundario =
   <!-- ============ CONTACTO ============ -->
   <section id="contacto" class="scroll-mt-20 py-12">
     <SectionTitle numero="04" titulo="contacto" />
-    <div class="mt-8 rounded-xl border border-borde bg-chasis p-8 text-center sm:p-12">
+    <div data-reveal class="mt-8 rounded-xl border border-borde bg-chasis p-8 text-center sm:p-12">
       <p class="font-mono text-sm text-portal">$ ping {site.usuario}</p>
       <h3 class="mt-4 text-3xl font-bold text-white sm:text-4xl">¿Arrancamos un proyecto?</h3>
       <p class="mx-auto mt-4 max-w-xl text-humo">
