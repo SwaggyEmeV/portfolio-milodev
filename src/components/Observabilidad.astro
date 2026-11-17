@@ -1,0 +1,21 @@
+---
+// Vercel Web Analytics (visitas) + Speed Insights (rendimiento real de usuarios).
+//
+// Solo se incluyen en PRODUCCIÓN DE VERCEL. Se necesitan las dos condiciones:
+//  - import.meta.env.PROD: es una build (`npm run build`), no `npm run dev`.
+//  - VERCEL_ENV === "production": Vercel pone esta variable al compilar.
+//    Vale "preview" en los despliegues de otras ramas/PRs y no existe en tu PC,
+//    así que ni tus pruebas locales ni las previews ensucian las estadísticas.
+// Si no se cumple, Astro no genera ni el HTML ni el JavaScript de estos scripts.
+import Analytics from "@vercel/analytics/astro";
+import SpeedInsights from "@vercel/speed-insights/astro";
+
+const esProduccion = import.meta.env.PROD && process.env.VERCEL_ENV === "production";
+---
+
+{esProduccion && (
+  <>
+    <Analytics />
+    <SpeedInsights />
+  </>
+)}
