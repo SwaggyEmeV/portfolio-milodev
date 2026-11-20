@@ -3,9 +3,7 @@ titulo: "Blog personal en PHP"
 resumen: "Blog hecho desde cero con PHP y MySQL, desplegado en mi propio servidor Linux en la nube."
 tecnologias: ["PHP", "MySQL", "HTML", "CSS", "Linux"]
 fecha: 2026-10-01
-# Añade aquí los enlaces reales (o borra la línea si no hay):
-# demo: "https://tu-blog.com"
-# repo: "https://github.com/tu-usuario/blog"
+demo: "https://163-192-132-242.sslip.io/"
 destacado: true
 ---
 
