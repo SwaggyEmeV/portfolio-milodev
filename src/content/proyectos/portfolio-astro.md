@@ -3,7 +3,7 @@ titulo: "Este portfolio"
 resumen: "Portfolio con forma de mapa de red hacker: cada nodo es un host que se explora para leerlo. Hecho con Astro, Tailwind CSS y Canvas."
 tecnologias: ["Astro", "Tailwind CSS", "TypeScript", "Canvas"]
 fecha: 2026-11-16
-# repo: "https://github.com/tu-usuario/portfolio"
+repo: "https://github.com/SwaggyEmeV/portfolio-milodev"
 ---
 
 ## Qué es

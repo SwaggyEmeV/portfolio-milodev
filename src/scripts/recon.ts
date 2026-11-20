@@ -12,9 +12,11 @@ type Proy = {
 };
 type Interes = { archivo: string; titulo: string; texto: string };
 type Host = { id: string; ip: string; nombre: string; secreto: string };
+type Puesto = { periodo: string; puesto: string; empresa: string; lugar: string; logros: string[] };
 type Datos = {
   usuario: string; host: string; nombre: string; rol: string; frase: string;
   email: string; github: string; linkedin: string; sobreMi: string[];
+  ubicacion: string; cv: string; experiencia: Puesto[]; formacion: string;
   ficha: [string, string][]; tecnologias: Tec[]; intereses: Interes[];
   hosts: Host[]; proyectos: Proy[];
 };
@@ -211,6 +213,12 @@ function arrancar(raiz: HTMLElement, d: Datos) {
   type Vista = { ip: string; hub: string; html: string };
 
   const etiquetasTec = (ts: string[]) => `<ul class="tags">${ts.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`;
+  // "hash" corto y estable (siempre el mismo para el mismo texto), como un commit de git
+  const hashCommit = (s: string) => {
+    let h = 0x811c9dc5;
+    for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193);
+    return (h >>> 0).toString(16).padStart(8, "0").slice(0, 7);
+  };
   const botonAbrir = (k: string, txt: string, sec = false) =>
     `<button type="button" class="${sec ? "btn-sec" : "btn"}" data-abrir="${esc(k)}">${esc(txt)}</button>`;
 
@@ -253,7 +261,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
       case "core":
         return { ...base, html: `<p class="d-eyebrow">// perfil del objetivo</p>
           <h2 class="d-h">${esc(d.nombre)}</h2>
-          <p class="d-rol">${esc(d.rol)} · backend</p>
+          <p class="d-rol">${esc(d.rol)} · ${esc(d.ubicacion)}</p>
           <p class="d-sub">${esc(d.frase)}</p>
           <dl class="kv">${d.ficha.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
           <div class="d-acciones">${botonAbrir("proyectos", "ver proyectos →")}${botonAbrir("contacto", "contacto", true)}</div>` };
@@ -280,7 +288,15 @@ function arrancar(raiz: HTMLElement, d: Datos) {
         return { ...base, html: `<p class="d-eyebrow">// cat ~/sobre_mi.md</p>
           <h2 class="d-h">Sobre mí</h2>
           ${d.sobreMi.map((t) => `<p class="d-p">${esc(t)}</p>`).join("")}
-          <div class="d-acciones">${botonAbrir("stack", "ver stack →")}${botonAbrir("garaje", "garaje", true)}</div>` };
+          <p class="d-eyebrow d-sep">// git log --career</p>
+          <ol class="gitlog">${d.experiencia.map((e, i) => `
+            <li class="gitlog-i">
+              <p class="gitlog-c"><span class="c-amb">${hashCommit(e.empresa + e.periodo)}</span>${i === 0 ? ' <span class="c-ok">(HEAD)</span>' : ""} <span class="c-dim">${esc(e.periodo)}</span></p>
+              <p class="gitlog-t"><b>${esc(e.puesto)}</b> · ${esc(e.empresa)} <span class="c-dim">· ${esc(e.lugar)}</span></p>
+              <ul class="gitlog-l">${e.logros.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
+            </li>`).join("")}</ol>
+          <p class="d-nota">${esc(d.formacion)}</p>
+          <div class="d-acciones"><a class="btn" href="${esc(d.cv)}" download>descargar CV ↓</a>${botonAbrir("stack", "ver stack →", true)}${botonAbrir("garaje", "garaje", true)}</div>` };
       case "garaje":
         return { ...base, html: `<p class="d-eyebrow">// ls ~/garaje</p>
           <h2 class="d-h">Garaje</h2>
@@ -300,7 +316,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
             <li><span>github</span><a href="${esc(d.github)}" target="_blank" rel="noopener">${esc(corto(d.github))}</a></li>
             <li><span>linkedin</span><a href="${esc(d.linkedin)}" target="_blank" rel="noopener">${esc(corto(d.linkedin))}</a></li>
           </ul>
-          <div class="d-acciones"><a class="btn" href="mailto:${esc(d.email)}">sudo hire ${esc(d.usuario)}</a></div>` };
+          <div class="d-acciones"><a class="btn" href="mailto:${esc(d.email)}">sudo hire ${esc(d.usuario)}</a><a class="btn-sec" href="${esc(d.cv)}" download>cv.pdf ↓</a></div>` };
     }
     return null;
   }
@@ -504,6 +520,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
         f("crt [on|off]", "pantalla de tubo catódico (tecla C)"),
         f("stack", "escaneo de puertos (tecnologías)"),
         f("contacto", "canales para escribirme"),
+        f("cv", "descargar mi CV en PDF"),
         f("sudo hire miller", "contratar (probablemente funcione)"),
         f("clear · exit", "limpiar · cerrar la consola"),
       ].forEach((l) => ln(l));
@@ -528,6 +545,14 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     },
     stack() { abrir("stack"); },
     contacto() { abrir("contacto"); },
+    cv() {
+      ln(`<span class="c-dim">descargando cv.pdf …</span> <a href="${esc(d.cv)}" download>${esc(d.cv.split("/").pop()!)}</a>`);
+      const a = document.createElement("a");
+      a.href = d.cv;
+      a.download = "";
+      a.click();
+      sniff("GET", "cv.pdf → 200 OK", "ok");
+    },
     crt(a) {
       const q = (a[0] ?? "").toLowerCase();
       const b = q === "on" ? true : q === "off" ? false : !crtOn;
@@ -584,7 +609,7 @@ function arrancar(raiz: HTMLElement, d: Datos) {
     clear() { cSalida.innerHTML = ""; },
     exit() { cerrarConsola(); },
   };
-  const alias: Record<string, string> = { ssh: "connect", open: "connect", cd: "connect", nmap: "stack", mail: "contacto", email: "contacto", cls: "clear", quit: "exit", q: "exit", "?": "help", ayuda: "help", neofetch: "whoami", id: "whoami" };
+  const alias: Record<string, string> = { ssh: "connect", open: "connect", cd: "connect", nmap: "stack", mail: "contacto", email: "contacto", cls: "clear", quit: "exit", q: "exit", "?": "help", ayuda: "help", neofetch: "whoami", id: "whoami", resume: "cv", curriculum: "cv" };
 
   function ejecutar(linea: string) {
     const txt = linea.trim();

@@ -24,6 +24,10 @@ const datos = {
   github: site.github,
   linkedin: site.linkedin,
   sobreMi: site.sobreMi,
+  ubicacion: site.ubicacion,
+  cv: site.cv,
+  experiencia: site.experiencia,
+  formacion: site.formacion,
   ficha: site.ficha,
   tecnologias: site.tecnologias,
   intereses: site.intereses,
@@ -181,9 +185,16 @@ const datosJson = JSON.stringify(datos).replace(/</g, "\\u003c");
   </ul>
   <h2>Sobre mí</h2>
   {site.sobreMi.map((t) => <p>{t}</p>)}
+  <h2>Experiencia</h2>
+  <ul>
+    {site.experiencia.map((e) => (
+      <li>{e.puesto} · {e.empresa} ({e.periodo}) — {e.logros.join(" ")}</li>
+    ))}
+  </ul>
+  <p>{site.formacion}</p>
   <h2>Contacto</h2>
   <p>
-    <a href={`mailto:${site.email}`}>{site.email}</a> · <a href={site.github}>GitHub</a> · <a href={site.linkedin}>LinkedIn</a>
+    <a href={`mailto:${site.email}`}>{site.email}</a> · <a href={site.github}>GitHub</a> · <a href={site.linkedin}>LinkedIn</a> · <a href={site.cv} download>CV (PDF)</a>
   </p>
 </section>
 

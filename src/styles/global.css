@@ -335,6 +335,20 @@ html:not(.js) .recon { display: none; }
 .d-p { margin: 16px 0 0; font-size: 14.5px; line-height: 1.75; color: color-mix(in srgb, var(--color-luz) 82%, var(--color-niebla)); }
 .d-nota { margin: 18px 0 0; font-size: 11px; color: var(--color-niebla); }
 .d-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+/* Experiencia como "git log": una línea vertical une los commits (puestos) */
+.d-sep { margin-top: 28px; }
+.gitlog { margin: 0; padding: 0; list-style: none; border-left: 1px solid var(--color-borde); }
+.gitlog-i { position: relative; padding: 0 0 18px 18px; }
+.gitlog-i::before {
+  content: ""; position: absolute; left: -4.5px; top: 5px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--color-noche); border: 1.5px solid var(--color-agua);
+}
+.gitlog-i:first-child::before { background: var(--color-agua); box-shadow: 0 0 8px var(--color-agua); }
+.gitlog-c { margin: 0; font-size: 11.5px; }
+.gitlog-t { margin: 4px 0 0; font-size: 14px; color: var(--color-luz); }
+.gitlog-l { margin: 6px 0 0; padding-left: 16px; font-size: 13px; line-height: 1.6; color: var(--color-niebla); }
+.gitlog-l li { list-style: "› "; }
 .c-ok { color: var(--color-agua); }
 .c-amb { color: var(--color-ambar); }
 
